@@ -6,7 +6,7 @@
 #define PLUGIN_NAME "Chat-Processor"
 #define PLUGIN_AUTHOR "Keith Warren (Drixevel)"
 #define PLUGIN_DESCRIPTION "Replacement for Simple Chat Processor."
-#define PLUGIN_VERSION "1.0.2"
+#define PLUGIN_VERSION "1.0.3"
 #define PLUGIN_CONTACT "http://www.drixevel.com/"
 
 //Includes
@@ -14,13 +14,12 @@
 #include <chat-processor>
 
 //Globals
-ConVar hConVars[1];
-//bool bLateLoad;
+ConVar hConVars[2];
 Handle hForward_OnChatMessage;
 Handle hForward_OnChatMessagePost;
-//EngineVersion hEngine;
 bool bProto;
-//Handle hTrie_ChatFormats;
+bool bMessageFormats;
+Handle hTrie_MessageFormats;
 
 public Plugin myinfo = 
 {
@@ -38,41 +37,51 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	hForward_OnChatMessage = CreateGlobalForward("OnChatMessage", ET_Hook, Param_CellByRef, Param_Cell, Param_Cell, Param_String, Param_String);
 	hForward_OnChatMessagePost = CreateGlobalForward("OnChatMessage_Post", ET_Ignore, Param_Cell, Param_Cell, Param_Cell, Param_String, Param_String);
 
-	//hEngine = GetEngineVersion();
-	//bLateLoad = late;
 	return APLRes_Success;
 }
 
 public void OnPluginStart()
 {
 	LoadTranslations("common.phrases");
-	//LoadTranslations("chatprocessor.phrases");
+	LoadTranslations("chatprocessor.phrases");
 	
 	hConVars[0] = CreateConVar("sm_chatprocessor_status", "1", "Status of the plugin.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+	hConVars[1] = CreateConVar("sm_chatprocessor_config", "configs/chat_processor.cfg", "Name of the message formats config.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 
 	//AutoExecConfig();
 
-	//hTrie_ChatFormats = CreateTrie();
+	hTrie_MessageFormats = CreateTrie();
 }
 
 public void OnConfigsExecuted()
 {
-	bProto = CanTestFeatures() && GetFeatureStatus(FeatureType_Native, "GetUserMessageType") == FeatureStatus_Available && GetUserMessageType() == UM_Protobuf;
+	char sGame[64];
+	GetGameFolderName(sGame, sizeof(sGame));
 
-	UserMsg SayText2 = GetUserMessageId("SayText2");
+	char sConfig[PLATFORM_MAX_PATH];
+	GetConVarString(hConVars[1], sConfig, sizeof(sConfig));
 
-	if (SayText2 != INVALID_MESSAGE_ID)
+	bMessageFormats = GenerateMessageFormats(sConfig, sGame);
+
+	if (bMessageFormats)
 	{
-		HookUserMessage(SayText2, OnSayText2, true);
+		bProto = CanTestFeatures() && GetFeatureStatus(FeatureType_Native, "GetUserMessageType") == FeatureStatus_Available && GetUserMessageType() == UM_Protobuf;
+
+		UserMsg SayText2 = GetUserMessageId("SayText2");
+
+		if (SayText2 != INVALID_MESSAGE_ID)
+		{
+			HookUserMessage(SayText2, OnSayText2, true);
+		}
+
+		/*
+		UserMsg SayText = GetUserMessageId("SayText");
+
+		if (SayText != INVALID_MESSAGE_ID)
+		{
+			HookUserMessage(SayText, OnSayText, true);
+		}*/
 	}
-
-	/*
-	UserMsg SayText = GetUserMessageId("SayText");
-
-	if (SayText != INVALID_MESSAGE_ID)
-	{
-		HookUserMessage(SayText, OnSayText, true);
-	}*/
 }
 
 public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int playersNum, bool reliable, bool init)
@@ -93,13 +102,11 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 		case false: BfReadString(msg, sTrans, sizeof(sTrans));
 	}
 
-	/*
-	int iBuffer;
-	if (!GetTrieValue(hTrie_ChatFormats, sTrans, iBuffer))
+	char sFormat[256];
+	if (!bMessageFormats || !GetTrieString(hTrie_MessageFormats, sTrans, sFormat, sizeof(sFormat)))
 	{
 		return Plugin_Continue;
 	}
-	*/
 
 	eChatFlags cFlag = ChatFlag_Invalid;
 	if (StrContains(sTrans, "all") != -1)
@@ -181,6 +188,7 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 	WritePackString(hPack, sName);
 	WritePackString(hPack, sMessage);
 	WritePackCell(hPack, cFlag);
+	WritePackString(hPack, sFormat);
 
 	RequestFrame(Frame_OnChatMessage);
 
@@ -208,6 +216,9 @@ public void Frame_OnChatMessage(any data)
 
 	eChatFlags cFlags = ReadPackCell(data);
 
+	char sFormat[256];
+	ReadPackString(data, sFormat, sizeof(sFormat));
+
 	CloseHandle(data);
 
 	int iClientSize = GetArraySize(hRecipients);
@@ -225,7 +236,7 @@ public void Frame_OnChatMessage(any data)
 	}
 
 	char sTranslation[MAXLENGTH_MESSAGE];
-	Format(sTranslation, sizeof(sTranslation), "%t", sTrans, sName, sMessage);
+	Format(sTranslation, sizeof(sTranslation), sFormat, sName, sMessage);
 
 	Handle msg = StartMessage("SayText2", clients, iClients, USERMSG_RELIABLE | USERMSG_BLOCKHOOKS);
 
@@ -267,3 +278,44 @@ public Action OnSayText(UserMsg msg_id, BfRead msg, const int[] players, int pla
 	
 }
 */
+
+bool GenerateMessageFormats(const char[] config, const char[] game)
+{
+	Handle hKV = CreateKeyValues("chat-processor");
+
+	char sPath[PLATFORM_MAX_PATH];
+	BuildPath(Path_SM, sPath, sizeof(sPath), config);
+
+	if (!FileToKeyValues(hKV, sPath))
+	{
+		LogError("Error finding configuration file for message formats: %s", config);
+		CloseHandle(hKV);
+		return false;
+	}
+
+	if (KvJumpToKey(hKV, game) && KvGotoFirstSubKey(hKV, false))
+	{
+		ClearTrie(hTrie_MessageFormats);
+
+		do {
+			char sName[256];
+			KvGetSectionName(hKV, sName, sizeof(sName));
+
+			char sValue[256];
+			KvGetString(hKV, NULL_STRING, sValue, sizeof(sValue));
+
+			SetTrieString(hTrie_MessageFormats, sName, sValue);
+
+		} while (KvGotoNextKey(hKV, false));
+	}
+	else
+	{
+		LogError("Error parsing message format, missing game '%s'.", game);
+		CloseHandle(hKV);
+		return false;
+	}
+
+	LogMessage("Message formats generated for game '%s'.", game);
+	CloseHandle(hKV);
+	return true;
+}
