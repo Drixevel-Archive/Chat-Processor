@@ -6,7 +6,7 @@
 #define PLUGIN_NAME "Chat-Processor"
 #define PLUGIN_AUTHOR "Keith Warren (Drixevel)"
 #define PLUGIN_DESCRIPTION "Replacement for Simple Chat Processor."
-#define PLUGIN_VERSION "1.0.1"
+#define PLUGIN_VERSION "1.0.2"
 #define PLUGIN_CONTACT "http://www.drixevel.com/"
 
 //Includes
@@ -224,6 +224,9 @@ public void Frame_OnChatMessage(any data)
 		}
 	}
 
+	char sTranslation[MAXLENGTH_MESSAGE];
+	Format(sTranslation, sizeof(sTranslation), "%t", sTrans, sName, sMessage);
+
 	Handle msg = StartMessage("SayText2", clients, iClients, USERMSG_RELIABLE | USERMSG_BLOCKHOOKS);
 
 	switch (bProto)
@@ -232,7 +235,7 @@ public void Frame_OnChatMessage(any data)
 		{
 			PbSetInt(msg, "ent_idx", iSender);
 			PbSetBool(msg, "chat", bChat);
-			PbSetString(msg, "msg_name", sTrans);
+			PbSetString(msg, "msg_name", sTranslation);
 			PbAddString(msg, "params", "");
 			PbAddString(msg, "params", "");
 			PbAddString(msg, "params", "");
