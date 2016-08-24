@@ -6,12 +6,13 @@
 #define PLUGIN_NAME "Chat-Processor"
 #define PLUGIN_AUTHOR "Keith Warren (Drixevel)"
 #define PLUGIN_DESCRIPTION "Replacement for Simple Chat Processor."
-#define PLUGIN_VERSION "1.0.3"
+#define PLUGIN_VERSION "1.0.4"
 #define PLUGIN_CONTACT "http://www.drixevel.com/"
 
 //Includes
 #include <sourcemod>
 #include <chat-processor>
+#include <colorvariables>
 
 //Globals
 ConVar hConVars[2];
@@ -34,8 +35,8 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 {
 	RegPluginLibrary("chat-processor");
 
-	hForward_OnChatMessage = CreateGlobalForward("OnChatMessage", ET_Hook, Param_CellByRef, Param_Cell, Param_Cell, Param_String, Param_String);
-	hForward_OnChatMessagePost = CreateGlobalForward("OnChatMessage_Post", ET_Ignore, Param_Cell, Param_Cell, Param_Cell, Param_String, Param_String);
+	hForward_OnChatMessage = CreateGlobalForward("OnChatMessage", ET_Hook, Param_CellByRef, Param_Cell, Param_CellByRef, Param_String, Param_String, Param_CellByRef, Param_CellByRef);
+	hForward_OnChatMessagePost = CreateGlobalForward("OnChatMessage_Post", ET_Ignore, Param_Cell, Param_Cell, Param_Cell, Param_String, Param_String, Param_Cell, Param_Cell);
 
 	return APLRes_Success;
 }
@@ -146,16 +147,21 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 		PushArrayCell(hRecipients, players[i]);
 	}
 
+	bool bProcessColors = true;
+	bool bRemoveColors = false;
+
 	char sNameCopy[MAXLENGTH_NAME];
 	strcopy(sNameCopy, sizeof(sNameCopy), sName);
-
+	PrintToServer("1");
 	Call_StartForward(hForward_OnChatMessage);
 	Call_PushCellRef(iSender);
 	Call_PushCell(hRecipients);
-	Call_PushCell(cFlag);
+	Call_PushCellRef(cFlag);
 	Call_PushStringEx(sName, sizeof(sName), SM_PARAM_STRING_UTF8|SM_PARAM_STRING_COPY, SM_PARAM_COPYBACK);
 	Call_PushStringEx(sMessage, sizeof(sMessage), SM_PARAM_STRING_UTF8|SM_PARAM_STRING_COPY, SM_PARAM_COPYBACK);
-
+	Call_PushCellRef(bProcessColors);
+	Call_PushCellRef(bRemoveColors);
+	PrintToServer("2");
 	Action iResults;
 	int error = Call_Finish(iResults);
 
@@ -179,7 +185,7 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 	{
 		Format(sName, sizeof(sName), "\x03%s", sName);
 	}
-
+	PrintToServer("3");
 	Handle hPack = CreateDataPack();
 	WritePackCell(hPack, iSender);
 	WritePackCell(hPack, hRecipients);
@@ -189,14 +195,17 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 	WritePackString(hPack, sMessage);
 	WritePackCell(hPack, cFlag);
 	WritePackString(hPack, sFormat);
+	WritePackCell(hPack, bProcessColors);
+	WritePackCell(hPack, bRemoveColors);
 
-	RequestFrame(Frame_OnChatMessage);
-
+	RequestFrame(Frame_OnChatMessage, hPack);
+	PrintToServer("4");
 	return Plugin_Handled;
 }
 
 public void Frame_OnChatMessage(any data)
 {
+	PrintToServer("5");
 	ResetPack(data);
 
 	int iSender = ReadPackCell(data);
@@ -216,60 +225,42 @@ public void Frame_OnChatMessage(any data)
 
 	eChatFlags cFlags = ReadPackCell(data);
 
-	char sFormat[256];
+	char sFormat[MAXLENGTH_MESSAGE];
 	ReadPackString(data, sFormat, sizeof(sFormat));
+
+	bool bProcessColors = ReadPackCell(data);
+	bool bRemoveColors = ReadPackCell(data);
 
 	CloseHandle(data);
 
-	int iClientSize = GetArraySize(hRecipients);
-	int[] clients = new int[hRecipients];
-	int iClients;
+	ReplaceString(sFormat, sizeof(sFormat), "{1}", sName);
+	ReplaceString(sFormat, sizeof(sFormat), "{2}", sMessage);
+	PrintToServer("6");
+	if (bProcessColors)
+	{
+		CProcessVariables(sFormat, sizeof(sFormat), bRemoveColors);
+	}
 
-	for (int i = 0; i < iClientSize; i++)
+	for (int i = 0; i < GetArraySize(hRecipients); i++)
 	{
 		int client = GetArrayCell(hRecipients, i);
 
 		if (IsClientInGame(client))
 		{
-			clients[iClients++] = client;
+			CSayText2(client, sFormat, iSender, bChat);
 		}
 	}
-
-	char sTranslation[MAXLENGTH_MESSAGE];
-	Format(sTranslation, sizeof(sTranslation), sFormat, sName, sMessage);
-
-	Handle msg = StartMessage("SayText2", clients, iClients, USERMSG_RELIABLE | USERMSG_BLOCKHOOKS);
-
-	switch (bProto)
-	{
-		case true:
-		{
-			PbSetInt(msg, "ent_idx", iSender);
-			PbSetBool(msg, "chat", bChat);
-			PbSetString(msg, "msg_name", sTranslation);
-			PbAddString(msg, "params", "");
-			PbAddString(msg, "params", "");
-			PbAddString(msg, "params", "");
-			PbAddString(msg, "params", "");
-		}
-		case false:
-		{
-			BfWriteByte(msg, iSender);
-			BfWriteByte(msg, bChat);
-			BfWriteString(msg, sTrans);
-		}
-	}
-
-	EndMessage();
-
+	PrintToServer("7");
 	Call_StartForward(hForward_OnChatMessagePost);
 	Call_PushCell(iSender);
 	Call_PushCell(hRecipients);
 	Call_PushCell(cFlags);
 	Call_PushString(sName);
 	Call_PushString(sMessage);
+	Call_PushCell(bProcessColors);
+	Call_PushCell(bRemoveColors);
 	Call_Finish();
-
+	PrintToServer("8");
 	CloseHandle(hRecipients);
 }
 /*

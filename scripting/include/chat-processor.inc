@@ -30,7 +30,7 @@ enum eChatFlags
 *
 * noreturn
 **/
-forward Action OnChatMessage(int& author, Handle recipients, eChatFlags& flag, char[] name, char[] message);
+forward Action OnChatMessage(int& author, Handle recipients, eChatFlags& flag, char[] name, char[] message, bool& bProcessColors, bool& bRemoveColors);
 
 /**
 * Called after the chat message is sent to the designated clients by the author.
@@ -43,7 +43,7 @@ forward Action OnChatMessage(int& author, Handle recipients, eChatFlags& flag, c
 *
 * noreturn
 **/
-forward void OnChatMessagePost(int author, Handle recipients, eChatFlags flag, const char[] name, const char[] message);
+forward void OnChatMessagePost(int author, Handle recipients, eChatFlags flag, const char[] name, const char[] message, bool bProcessColors, bool bRemoveColors);
 
 /**
 Shared plugin information
