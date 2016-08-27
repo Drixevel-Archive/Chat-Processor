@@ -6,7 +6,7 @@
 #define PLUGIN_NAME "Chat-Processor"
 #define PLUGIN_AUTHOR "Keith Warren (Drixevel)"
 #define PLUGIN_DESCRIPTION "Replacement for Simple Chat Processor."
-#define PLUGIN_VERSION "1.0.5"
+#define PLUGIN_VERSION "1.0.6"
 #define PLUGIN_CONTACT "http://www.drixevel.com/"
 
 //Includes
@@ -21,6 +21,7 @@ Handle hForward_OnChatMessagePost;
 bool bProto;
 bool bMessageFormats;
 Handle hTrie_MessageFormats;
+bool bSendingMessage[MAXPLAYERS + 1];
 
 public Plugin myinfo = 
 {
@@ -106,6 +107,13 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 		return Plugin_Continue;
 	}
 
+	if (bSendingMessage[iSender])
+	{
+		return Plugin_Handled;
+	}
+
+	bSendingMessage[iSender] = true;
+
 	bool bChat = bProto ? view_as<bool>(PbReadInt(msg, "chat")) : view_as<bool>(BfReadByte(msg));
 
 	char sTrans[32];
@@ -154,6 +162,7 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 	}
 
 	Handle hRecipients = CreateArray();
+	PushArrayCell(hRecipients, iSender);
 	for (int i = 0; i < playersNum; i++)
 	{
 		PushArrayCell(hRecipients, players[i]);
@@ -179,6 +188,7 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 
 	if (error != SP_ERROR_NONE)
 	{
+		bSendingMessage[iSender] = false;
 		ThrowNativeError(error, "Forward has failed to fire.");
 		CloseHandle(hRecipients);
 		return Plugin_Continue;
@@ -188,6 +198,7 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 	{
 		case Plugin_Continue, Plugin_Stop:
 		{
+			bSendingMessage[iSender] = false;
 			CloseHandle(hRecipients);
 			return iResults;
 		}
@@ -273,6 +284,8 @@ public void Frame_OnChatMessage(any data)
 	Call_Finish();
 	
 	CloseHandle(hRecipients);
+
+	bSendingMessage[iSender] = false;
 }
 /*
 public Action OnSayText(UserMsg msg_id, BfRead msg, const int[] players, int playersNum, bool reliable, bool init)
