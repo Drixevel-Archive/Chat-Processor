@@ -152,7 +152,7 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 
 	char sNameCopy[MAXLENGTH_NAME];
 	strcopy(sNameCopy, sizeof(sNameCopy), sName);
-	PrintToServer("1");
+	
 	Call_StartForward(hForward_OnChatMessage);
 	Call_PushCellRef(iSender);
 	Call_PushCell(hRecipients);
@@ -161,7 +161,7 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 	Call_PushStringEx(sMessage, sizeof(sMessage), SM_PARAM_STRING_UTF8|SM_PARAM_STRING_COPY, SM_PARAM_COPYBACK);
 	Call_PushCellRef(bProcessColors);
 	Call_PushCellRef(bRemoveColors);
-	PrintToServer("2");
+	
 	Action iResults;
 	int error = Call_Finish(iResults);
 
@@ -185,7 +185,7 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 	{
 		Format(sName, sizeof(sName), "\x03%s", sName);
 	}
-	PrintToServer("3");
+	
 	Handle hPack = CreateDataPack();
 	WritePackCell(hPack, iSender);
 	WritePackCell(hPack, hRecipients);
@@ -199,13 +199,12 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 	WritePackCell(hPack, bRemoveColors);
 
 	RequestFrame(Frame_OnChatMessage, hPack);
-	PrintToServer("4");
+	
 	return Plugin_Handled;
 }
 
 public void Frame_OnChatMessage(any data)
 {
-	PrintToServer("5");
 	ResetPack(data);
 
 	int iSender = ReadPackCell(data);
@@ -235,7 +234,7 @@ public void Frame_OnChatMessage(any data)
 
 	ReplaceString(sFormat, sizeof(sFormat), "{1}", sName);
 	ReplaceString(sFormat, sizeof(sFormat), "{2}", sMessage);
-	PrintToServer("6");
+	
 	if (bProcessColors)
 	{
 		CProcessVariables(sFormat, sizeof(sFormat), bRemoveColors);
@@ -250,7 +249,7 @@ public void Frame_OnChatMessage(any data)
 			CSayText2(client, sFormat, iSender, bChat);
 		}
 	}
-	PrintToServer("7");
+	
 	Call_StartForward(hForward_OnChatMessagePost);
 	Call_PushCell(iSender);
 	Call_PushCell(hRecipients);
@@ -260,7 +259,7 @@ public void Frame_OnChatMessage(any data)
 	Call_PushCell(bProcessColors);
 	Call_PushCell(bRemoveColors);
 	Call_Finish();
-	PrintToServer("8");
+	
 	CloseHandle(hRecipients);
 }
 /*
