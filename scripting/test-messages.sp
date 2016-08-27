@@ -13,8 +13,6 @@
 #include <sourcemod>
 #include <chat-processor>
 
-//Globals
-
 public Plugin myinfo = 
 {
 	name = PLUGIN_NAME, 
@@ -23,11 +21,6 @@ public Plugin myinfo =
 	version = PLUGIN_VERSION, 
 	url = PLUGIN_CONTACT
 };
-
-public void OnPluginStart()
-{
-
-}
 
 public Action OnChatMessage(int& author, Handle recipients, eChatFlags& flag, char[] name, char[] message, bool& bProcessColors, bool& bRemoveColors)
 {
@@ -38,5 +31,5 @@ public Action OnChatMessage(int& author, Handle recipients, eChatFlags& flag, ch
 
 public void OnChatMessagePost(int author, Handle recipients, eChatFlags flag, const char[] name, const char[] message, bool bProcessColors, bool bRemoveColors)
 {
-
+	PrintToServer("[TEST] %s: %s [%b/%b]", name, message, bProcessColors, bRemoveColors);
 }

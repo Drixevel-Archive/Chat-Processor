@@ -6,7 +6,7 @@
 #define PLUGIN_NAME "Chat-Processor"
 #define PLUGIN_AUTHOR "Keith Warren (Drixevel)"
 #define PLUGIN_DESCRIPTION "Replacement for Simple Chat Processor."
-#define PLUGIN_VERSION "1.0.4"
+#define PLUGIN_VERSION "1.0.5"
 #define PLUGIN_CONTACT "http://www.drixevel.com/"
 
 //Includes
@@ -44,18 +44,25 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 public void OnPluginStart()
 {
 	LoadTranslations("common.phrases");
-	LoadTranslations("chatprocessor.phrases");
+	//LoadTranslations("chatprocessor.phrases");
+	
+	CreateConVar("sm_chatprocessor_version", PLUGIN_VERSION, PLUGIN_DESCRIPTION, FCVAR_REPLICATED | FCVAR_NOTIFY | FCVAR_SPONLY | FCVAR_DONTRECORD);
 	
 	hConVars[0] = CreateConVar("sm_chatprocessor_status", "1", "Status of the plugin.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
-	hConVars[1] = CreateConVar("sm_chatprocessor_config", "configs/chat_processor.cfg", "Name of the message formats config.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+	hConVars[1] = CreateConVar("sm_chatprocessor_config", "configs/chat_processor.cfg", "Name of the message formats config.", FCVAR_NOTIFY);
 
-	//AutoExecConfig();
+	AutoExecConfig();
 
 	hTrie_MessageFormats = CreateTrie();
 }
 
 public void OnConfigsExecuted()
 {
+	if (!GetConVarBool(hConVars[0]))
+	{
+		return;
+	}
+	
 	char sGame[64];
 	GetGameFolderName(sGame, sizeof(sGame));
 
@@ -87,6 +94,11 @@ public void OnConfigsExecuted()
 
 public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int playersNum, bool reliable, bool init)
 {
+	if (!GetConVarBool(hConVars[0]) || !bMessageFormats)
+	{
+		return Plugin_Continue;
+	}
+	
 	int iSender = bProto ? PbReadInt(msg, "ent_idx") : BfReadByte(msg);
 
 	if (iSender <= 0)
