@@ -30,7 +30,7 @@ enum eChatFlags
 *
 * noreturn
 **/
-forward Action OnChatMessage(int& author, Handle recipients, eChatFlags& flag, char[] name, char[] message, bool& bProcessColors, bool& bRemoveColors);
+forward Action OnChatMessage(int& author, ArrayList recipients, eChatFlags& flag, char[] name, char[] message, bool& bProcessColors, bool& bRemoveColors);
 
 /**
 * Called after the chat message is sent to the designated clients by the author.
@@ -43,12 +43,12 @@ forward Action OnChatMessage(int& author, Handle recipients, eChatFlags& flag, c
 *
 * noreturn
 **/
-forward void OnChatMessagePost(int author, Handle recipients, eChatFlags flag, const char[] name, const char[] message, bool bProcessColors, bool bRemoveColors);
+forward void OnChatMessagePost(int author, ArrayList recipients, eChatFlags flag, const char[] name, const char[] message, bool bProcessColors, bool bRemoveColors);
 
 /**
 Shared plugin information
 **/
-public SharedPlugin _pl_chat_processor = 
+public SharedPlugin _pl_chat_processor =
 {
 	name = "chat-processor",
 	file = "chat-processor.smx",
@@ -58,10 +58,3 @@ public SharedPlugin _pl_chat_processor =
 	required = 0
 #endif
 };
-
-#if !defined REQUIRE_PLUGIN
-public _pl_chat_processor_SetNTVOptional()
-{
-	MarkNativeAsOptional("");
-}
-#endif
