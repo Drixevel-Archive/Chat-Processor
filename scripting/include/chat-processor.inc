@@ -28,7 +28,11 @@ enum eChatFlags
 * param name			Name string of the author to be pushed.
 * param message			Message string from the author to be pushed.
 *
-* noreturn
+* return types
+*  - Plugin_Continue	Stops the message.
+*  - Plugin_Stop		Stops the message.
+*  - Plugin_Changed		Fires the post-forward below and prints out a message.
+*  - Plugin_Handled		Fires the post-forward below but doesn't print a message.
 **/
 forward Action OnChatMessage(int& author, ArrayList recipients, eChatFlags& flag, char[] name, char[] message, bool& bProcessColors, bool& bRemoveColors);
 
