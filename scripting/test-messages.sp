@@ -24,19 +24,12 @@ public Plugin myinfo =
 
 public Action OnChatMessage(int& author, Handle recipients, eChatFlags& flag, char[] name, char[] message, bool& bProcessColors, bool& bRemoveColors)
 {
-	Format(name, MAXLENGTH_NAME, "{red}%s", name);
-	Format(message, MAXLENGTH_MESSAGE, "{blue}%s", message);
-
-	for (int i = 0; i < GetArraySize(recipients); i++)
-	{
-		int client = GetArrayCell(recipients, i);
-		PrintToServer("Array Index %i: %N", i, client);
-	}
-
+	Format(name, MAXLENGTH_NAME, "{green}%s", name);
+	Format(message, MAXLENGTH_MESSAGE, "{lightgreen}%s", message);
 	return Plugin_Changed;
 }
 
 public void OnChatMessagePost(int author, Handle recipients, eChatFlags flag, const char[] name, const char[] message, bool bProcessColors, bool bRemoveColors)
 {
-
+	PrintToServer("[TEST] %s: %s [%b/%b]", name, message, bProcessColors, bRemoveColors);
 }
