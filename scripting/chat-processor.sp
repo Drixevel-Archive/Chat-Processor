@@ -6,7 +6,7 @@
 #define PLUGIN_NAME "Chat-Processor"
 #define PLUGIN_AUTHOR "Keith Warren (Drixevel)"
 #define PLUGIN_DESCRIPTION "Replacement for Simple Chat Processor."
-#define PLUGIN_VERSION "1.0.7"
+#define PLUGIN_VERSION "1.0.8"
 #define PLUGIN_CONTACT "http://www.drixevel.com/"
 
 //Includes
@@ -210,21 +210,14 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 
 	switch (iResults)
 	{
-		case Plugin_Continue:
+		case Plugin_Continue, Plugin_Stop:
 		{
 			bSendingMessage[iSender] = false;
 			CloseHandle(hRecipients);
 			return iResults;
 		}
 
-		case Plugin_Stop:
-		{
-			bSendingMessage[iSender] = false;
-			CloseHandle(hRecipients);
-			return iResults;
-		}
-
-		case Plugin_Changed:
+		case Plugin_Changed, Plugin_Handled:
 		{
 			Handle hPack = CreateDataPack();
 			WritePackCell(hPack, iSender);
@@ -237,6 +230,7 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 			WritePackString(hPack, sFormat);
 			WritePackCell(hPack, bProcessColors);
 			WritePackCell(hPack, bRemoveColors);
+			WritePackCell(hPack, iResults);
 
 			RequestFrame(Frame_OnChatMessage_SayText2, hPack);
 		}
@@ -271,6 +265,8 @@ public void Frame_OnChatMessage_SayText2(any data)
 
 	bool bProcessColors = ReadPackCell(data);
 	bool bRemoveColors = ReadPackCell(data);
+	
+	Action iResults = view_as<Action>(ReadPackCell(data));
 
 	CloseHandle(data);
 
@@ -281,14 +277,17 @@ public void Frame_OnChatMessage_SayText2(any data)
 	{
 		CProcessVariables(sFormat, sizeof(sFormat), bRemoveColors);
 	}
-
-	for (int i = 0; i < GetArraySize(hRecipients); i++)
+	
+	if (iResults == Plugin_Changed)
 	{
-		int client = GetArrayCell(hRecipients, i);
-
-		if (IsClientInGame(client))
+		for (int i = 0; i < GetArraySize(hRecipients); i++)
 		{
-			CSayText2(client, sFormat, iSender, bChat);
+			int client = GetArrayCell(hRecipients, i);
+
+			if (IsClientInGame(client))
+			{
+				CSayText2(client, sFormat, iSender, bChat);
+			}
 		}
 	}
 	
