@@ -22,14 +22,15 @@ public Plugin myinfo =
 	url = PLUGIN_CONTACT
 };
 
-public Action OnChatMessage(int& author, Handle recipients, eChatFlags& flag, char[] name, char[] message, bool& bProcessColors, bool& bRemoveColors)
+public Action OnChatMessage(int& author, ArrayList recipients, eChatFlags& flag, char[] name, char[] message, bool& bProcessColors, bool& bRemoveColors)
 {
-	Format(name, MAXLENGTH_NAME, "{green}%s", name);
-	Format(message, MAXLENGTH_MESSAGE, "{lightgreen}%s", message);
-	return Plugin_Changed;
+	Format(name, MAXLENGTH_NAME, "{red}%s", name);
+	Format(message, MAXLENGTH_MESSAGE, "{red}%s", message);
+	return Plugin_Continue;
 }
 
-public void OnChatMessagePost(int author, Handle recipients, eChatFlags flag, const char[] name, const char[] message, bool bProcessColors, bool bRemoveColors)
+public void OnChatMessagePost(int author, ArrayList recipients, eChatFlags flag, const char[] name, const char[] message, bool bProcessColors, bool bRemoveColors)
 {
-	PrintToServer("[TEST] %s: %s [%b/%b]", name, message, bProcessColors, bRemoveColors);
+	//PrintToServer("[TEST] %s: %s [%b/%b]", name, message, bProcessColors, bRemoveColors);
+	//PrintToChatAll("%s: %s 222", name, message);
 }

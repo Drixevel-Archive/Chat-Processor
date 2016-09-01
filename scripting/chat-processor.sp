@@ -6,7 +6,7 @@
 #define PLUGIN_NAME "Chat-Processor"
 #define PLUGIN_AUTHOR "Keith Warren (Drixevel)"
 #define PLUGIN_DESCRIPTION "Replacement for Simple Chat Processor."
-#define PLUGIN_VERSION "1.0.8"
+#define PLUGIN_VERSION "1.0.9"
 #define PLUGIN_CONTACT "http://www.drixevel.com/"
 
 //Includes
@@ -21,7 +21,6 @@ Handle hForward_OnChatMessagePost;
 bool bProto;
 bool bMessageFormats;
 Handle hTrie_MessageFormats;
-bool bSendingMessage[MAXPLAYERS + 1];
 
 public Plugin myinfo = 
 {
@@ -37,7 +36,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	RegPluginLibrary("chat-processor");
 
 	hForward_OnChatMessage = CreateGlobalForward("OnChatMessage", ET_Hook, Param_CellByRef, Param_Cell, Param_CellByRef, Param_String, Param_String, Param_CellByRef, Param_CellByRef);
-	hForward_OnChatMessagePost = CreateGlobalForward("OnChatMessage_Post", ET_Ignore, Param_Cell, Param_Cell, Param_Cell, Param_String, Param_String, Param_Cell, Param_Cell);
+	hForward_OnChatMessagePost = CreateGlobalForward("OnChatMessagePost", ET_Ignore, Param_Cell, Param_Cell, Param_Cell, Param_String, Param_String, Param_Cell, Param_Cell);
 
 	return APLRes_Success;
 }
@@ -102,6 +101,9 @@ public void OnConfigsExecuted()
 	}
 }
 
+////////////////////
+//SayText2
+
 public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int playersNum, bool reliable, bool init)
 {
 	if (!GetConVarBool(hConVars[0]) || !bMessageFormats)
@@ -115,13 +117,6 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 	{
 		return Plugin_Continue;
 	}
-
-	if (bSendingMessage[iSender])
-	{
-		return Plugin_Handled;
-	}
-
-	bSendingMessage[iSender] = true;
 
 	bool bChat = bProto ? PbReadBool(msg, "chat") : view_as<bool>(BfReadByte(msg));
 
@@ -171,7 +166,6 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 	}
 
 	Handle hRecipients = CreateArray();
-	PushArrayCell(hRecipients, iSender);
 	for (int i = 0; i < playersNum; i++)
 	{
 		PushArrayCell(hRecipients, players[i]);
@@ -192,17 +186,11 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 	Call_PushCellRef(bProcessColors);
 	Call_PushCellRef(bRemoveColors);
 	
-	if (StrEqual(sNameCopy, sName))
-	{
-		Format(sName, sizeof(sName), "\x03%s", sName);
-	}
-	
 	Action iResults;
 	int error = Call_Finish(iResults);
 
 	if (error != SP_ERROR_NONE)
 	{
-		bSendingMessage[iSender] = false;
 		CloseHandle(hRecipients);
 		ThrowNativeError(error, "Forward has failed to fire.");
 		return Plugin_Continue;
@@ -212,13 +200,17 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 	{
 		case Plugin_Continue, Plugin_Stop:
 		{
-			bSendingMessage[iSender] = false;
 			CloseHandle(hRecipients);
 			return iResults;
 		}
 
 		case Plugin_Changed, Plugin_Handled:
 		{
+			if (StrEqual(sNameCopy, sName))
+			{
+				Format(sName, sizeof(sName), "\x03%s", sName);
+			}
+			
 			Handle hPack = CreateDataPack();
 			WritePackCell(hPack, iSender);
 			WritePackCell(hPack, hRecipients);
@@ -302,9 +294,10 @@ public void Frame_OnChatMessage_SayText2(any data)
 	Call_Finish();
 	
 	CloseHandle(hRecipients);
-
-	bSendingMessage[iSender] = false;
 }
+
+////////////////////
+//SayText
 
 public Action OnSayText(UserMsg msg_id, BfRead msg, const int[] players, int playersNum, bool reliable, bool init)
 {
@@ -314,13 +307,6 @@ public Action OnSayText(UserMsg msg_id, BfRead msg, const int[] players, int pla
 	{
 		return Plugin_Continue;
 	}
-
-	if (bSendingMessage[iSender])
-	{
-		return Plugin_Handled;
-	}
-
-	bSendingMessage[iSender] = true;
 
 	char sMessage[MAXLENGTH_INPUT];
 	switch (bProto)
@@ -507,8 +493,6 @@ public void Frame_OnChatMessage_SayText(any data)
 	Call_Finish();
 	
 	CloseHandle(hRecipients);
-
-	bSendingMessage[iSender] = false;
 }
 
 bool GenerateMessageFormats(const char[] config, const char[] game)
