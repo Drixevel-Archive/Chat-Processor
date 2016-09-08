@@ -6,7 +6,7 @@
 #define PLUGIN_NAME "Chat-Processor"
 #define PLUGIN_AUTHOR "Keith Warren (Drixevel)"
 #define PLUGIN_DESCRIPTION "Replacement for Simple Chat Processor."
-#define PLUGIN_VERSION "1.0.9"
+#define PLUGIN_VERSION "1.1.0"
 #define PLUGIN_CONTACT "http://www.drixevel.com/"
 
 //Includes
@@ -19,8 +19,8 @@ ConVar hConVars[2];
 Handle hForward_OnChatMessage;
 Handle hForward_OnChatMessagePost;
 bool bProto;
-bool bMessageFormats;
 Handle hTrie_MessageFormats;
+bool bHooked;
 
 public Plugin myinfo = 
 {
@@ -69,15 +69,17 @@ public void OnConfigsExecuted()
 	char sConfig[PLATFORM_MAX_PATH];
 	GetConVarString(hConVars[1], sConfig, sizeof(sConfig));
 
-	bMessageFormats = GenerateMessageFormats(sConfig, sGame);
+	if (!GenerateMessageFormats(sConfig, sGame))
+	{
+		SetFailState("Error loading the plugin, missing config.");
+	}
 
-	if (bMessageFormats)
+	if (!bHooked)
 	{
 		bProto = CanTestFeatures() && GetFeatureStatus(FeatureType_Native, "GetUserMessageType") == FeatureStatus_Available && GetUserMessageType() == UM_Protobuf;
 		bool bLoaded;
 
 		UserMsg SayText2 = GetUserMessageId("SayText2");
-
 		if (SayText2 != INVALID_MESSAGE_ID)
 		{
 			HookUserMessage(SayText2, OnSayText2, true);
@@ -86,7 +88,6 @@ public void OnConfigsExecuted()
 		}
 
 		UserMsg SayText = GetUserMessageId("SayText");
-
 		if (SayText != INVALID_MESSAGE_ID && !bLoaded)
 		{
 			HookUserMessage(SayText, OnSayText, true);
@@ -98,6 +99,8 @@ public void OnConfigsExecuted()
 		{
 			SetFailState("Error loading the plugin, both chat hooks are unavailable. (SayText & SayText2)");
 		}
+
+		bHooked = true;
 	}
 }
 
@@ -106,7 +109,7 @@ public void OnConfigsExecuted()
 
 public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int playersNum, bool reliable, bool init)
 {
-	if (!GetConVarBool(hConVars[0]) || !bMessageFormats)
+	if (!GetConVarBool(hConVars[0]))
 	{
 		return Plugin_Continue;
 	}
@@ -128,7 +131,7 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 	}
 
 	char sFormat[256];
-	if (!bMessageFormats || !GetTrieString(hTrie_MessageFormats, sTrans, sFormat, sizeof(sFormat)))
+	if (!GetTrieString(hTrie_MessageFormats, sTrans, sFormat, sizeof(sFormat)))
 	{
 		return Plugin_Continue;
 	}
@@ -279,6 +282,7 @@ public void Frame_OnChatMessage_SayText2(any data)
 			if (IsClientInGame(client))
 			{
 				CSayText2(client, sFormat, iSender, bChat);
+				PrintToServer("Pring %s to %N by %N.", sFormat, client, iSender);
 			}
 		}
 	}

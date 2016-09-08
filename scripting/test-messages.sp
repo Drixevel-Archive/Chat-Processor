@@ -24,9 +24,8 @@ public Plugin myinfo =
 
 public Action OnChatMessage(int& author, ArrayList recipients, eChatFlags& flag, char[] name, char[] message, bool& bProcessColors, bool& bRemoveColors)
 {
-	Format(name, MAXLENGTH_NAME, "{red}%s", name);
-	Format(message, MAXLENGTH_MESSAGE, "{red}%s", message);
-	return Plugin_Continue;
+	Format(message, MAXLENGTH_MESSAGE, "{red}%s 2", message);
+	return Plugin_Changed;
 }
 
 public void OnChatMessagePost(int author, ArrayList recipients, eChatFlags flag, const char[] name, const char[] message, bool bProcessColors, bool bRemoveColors)
