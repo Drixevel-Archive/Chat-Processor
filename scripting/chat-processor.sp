@@ -6,7 +6,7 @@
 #define PLUGIN_NAME "Chat-Processor"
 #define PLUGIN_AUTHOR "Keith Warren (Drixevel)"
 #define PLUGIN_DESCRIPTION "Replacement for Simple Chat Processor."
-#define PLUGIN_VERSION "1.1.0"
+#define PLUGIN_VERSION "1.1.1"
 #define PLUGIN_CONTACT "http://www.drixevel.com/"
 
 //Includes
@@ -282,7 +282,6 @@ public void Frame_OnChatMessage_SayText2(any data)
 			if (IsClientInGame(client))
 			{
 				CSayText2(client, sFormat, iSender, bChat);
-				PrintToServer("Pring %s to %N by %N.", sFormat, client, iSender);
 			}
 		}
 	}
