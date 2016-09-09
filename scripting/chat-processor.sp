@@ -282,7 +282,7 @@ public void Frame_OnChatMessage_SayText2(any data)
 			if (IsClientInGame(client))
 			{
 				CSayText2(client, sFormat, iSender, bChat);
-				PrintToServer("Pring %s to %N by %N.", sFormat, client, iSender);
+				PrintToServer("Print %s to %N by %N.", sFormat, client, iSender);
 			}
 		}
 	}
