@@ -17,6 +17,20 @@ enum eChatFlags
 	ChatFlag_Dead
 }
 
+//Natives
+/**
+* Retrieves the current format string assigned to a chat flag.
+* Example: ChatFlag_Dead = ' *DEAD* {1} :  {2} '
+* You can find the config formats in either the translations or the configs.
+*
+* param flag			Flag to retrieve the format string for.
+* param sFormatString	String Buffer.
+* param iSize			Size of the String Buffer.
+*
+* noreturn
+**/
+native void ChatProcessor_GetChatFlagString(eChatFlags flag, char[] sFormatString, int iSize);
+
 //Forwards
 /**
 * Called while sending a chat message before It's sent.
@@ -49,9 +63,13 @@ forward Action OnChatMessage(int& author, ArrayList recipients, eChatFlags& flag
 **/
 forward void OnChatMessagePost(int author, ArrayList recipients, eChatFlags flag, const char[] name, const char[] message, bool bProcessColors, bool bRemoveColors);
 
-/**
-Shared plugin information
-**/
+#if !defined REQUIRE_PLUGIN
+public __pl_chat_processor_SetNTVOptional()
+{
+	MarkNativeAsOptional("ChatProcessor_GetChatFlagString");
+}
+#endif
+
 public SharedPlugin _pl_chat_processor =
 {
 	name = "chat-processor",

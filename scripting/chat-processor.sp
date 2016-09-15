@@ -6,7 +6,7 @@
 #define PLUGIN_NAME "Chat-Processor"
 #define PLUGIN_AUTHOR "Keith Warren (Drixevel)"
 #define PLUGIN_DESCRIPTION "Replacement for Simple Chat Processor."
-#define PLUGIN_VERSION "1.1.1"
+#define PLUGIN_VERSION "1.1.2"
 #define PLUGIN_CONTACT "http://www.drixevel.com/"
 
 //Includes
@@ -20,6 +20,7 @@ Handle hForward_OnChatMessage;
 Handle hForward_OnChatMessagePost;
 bool bProto;
 Handle hTrie_MessageFormats;
+Handle hTrie_MessageNames;
 bool bHooked;
 
 public Plugin myinfo = 
@@ -34,6 +35,7 @@ public Plugin myinfo =
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
 	RegPluginLibrary("chat-processor");
+	CreateNative("ChatProcessor_GetChatFlagString", Native_GetChatFlagString);
 
 	hForward_OnChatMessage = CreateGlobalForward("OnChatMessage", ET_Hook, Param_CellByRef, Param_Cell, Param_CellByRef, Param_String, Param_String, Param_CellByRef, Param_CellByRef);
 	hForward_OnChatMessagePost = CreateGlobalForward("OnChatMessagePost", ET_Ignore, Param_Cell, Param_Cell, Param_Cell, Param_String, Param_String, Param_Cell, Param_Cell);
@@ -54,6 +56,7 @@ public void OnPluginStart()
 	AutoExecConfig();
 
 	hTrie_MessageFormats = CreateTrie();
+	hTrie_MessageNames = CreateTrie();
 }
 
 public void OnConfigsExecuted()
@@ -130,29 +133,13 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 		case false: BfReadString(msg, sTrans, sizeof(sTrans));
 	}
 
-	char sFormat[256];
-	if (!GetTrieString(hTrie_MessageFormats, sTrans, sFormat, sizeof(sFormat)))
+	char sFormatString[256];
+	if (!GetTrieString(hTrie_MessageFormats, sTrans, sFormatString, sizeof(sFormatString)))
 	{
 		return Plugin_Continue;
 	}
 
-	eChatFlags cFlag = ChatFlag_Invalid;
-	if (StrContains(sTrans, "all") != -1)
-	{
-		cFlag = ChatFlag_All;
-	}
-	else if (StrContains(sTrans, "team") != -1 || StrContains(sTrans, "survivor") != -1 || StrContains(sTrans, "infected") != -1 || StrContains(sTrans, "Cstrike_Chat_CT") != -1 || StrContains(sTrans, "Cstrike_Chat_T") != -1)
-	{
-		cFlag = ChatFlag_Team;
-	}
-	else if (StrContains(sTrans, "spec") != -1)
-	{
-		cFlag = ChatFlag_Spec;
-	}
-	else if (StrContains(sTrans, "dead") != -1)
-	{
-		cFlag = ChatFlag_Dead;
-	}
+	eChatFlags cFlag = RetrieveChatFlag(sFormatString);
 
 	char sName[MAXLENGTH_NAME];
 	switch (bProto)
@@ -222,7 +209,7 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 			WritePackString(hPack, sName);
 			WritePackString(hPack, sMessage);
 			WritePackCell(hPack, cFlag);
-			WritePackString(hPack, sFormat);
+			WritePackString(hPack, sFormatString);
 			WritePackCell(hPack, bProcessColors);
 			WritePackCell(hPack, bRemoveColors);
 			WritePackCell(hPack, iResults);
@@ -255,8 +242,8 @@ public void Frame_OnChatMessage_SayText2(any data)
 
 	eChatFlags cFlags = ReadPackCell(data);
 
-	char sFormat[MAXLENGTH_MESSAGE];
-	ReadPackString(data, sFormat, sizeof(sFormat));
+	char sFormatString[MAXLENGTH_MESSAGE];
+	ReadPackString(data, sFormatString, sizeof(sFormatString));
 
 	bool bProcessColors = ReadPackCell(data);
 	bool bRemoveColors = ReadPackCell(data);
@@ -265,12 +252,12 @@ public void Frame_OnChatMessage_SayText2(any data)
 
 	CloseHandle(data);
 
-	ReplaceString(sFormat, sizeof(sFormat), "{1}", sName);
-	ReplaceString(sFormat, sizeof(sFormat), "{2}", sMessage);
+	ReplaceString(sFormatString, sizeof(sFormatString), "{1}", sName);
+	ReplaceString(sFormatString, sizeof(sFormatString), "{2}", sMessage);
 	
 	if (bProcessColors)
 	{
-		CProcessVariables(sFormat, sizeof(sFormat), bRemoveColors);
+		CProcessVariables(sFormatString, sizeof(sFormatString), bRemoveColors);
 	}
 	
 	if (iResults == Plugin_Changed)
@@ -281,7 +268,7 @@ public void Frame_OnChatMessage_SayText2(any data)
 
 			if (IsClientInGame(client))
 			{
-				CSayText2(client, sFormat, iSender, bChat);
+				CSayText2(client, sFormatString, iSender, bChat);
 			}
 		}
 	}
@@ -515,6 +502,7 @@ bool GenerateMessageFormats(const char[] config, const char[] game)
 	if (KvJumpToKey(hKV, game) && KvGotoFirstSubKey(hKV, false))
 	{
 		ClearTrie(hTrie_MessageFormats);
+		ClearTrie(hTrie_MessageNames);
 
 		do {
 			char sName[256];
@@ -524,6 +512,11 @@ bool GenerateMessageFormats(const char[] config, const char[] game)
 			KvGetString(hKV, NULL_STRING, sValue, sizeof(sValue));
 
 			SetTrieString(hTrie_MessageFormats, sName, sValue);
+
+			char sFlag[12];
+			IntToString(RetrieveChatFlag(sValue), sFlag, sizeof(sFlag));
+
+			SetTrieString(hTrie_MessageNames, sFlag, sName);
 
 		} while (KvGotoNextKey(hKV, false));
 	}
@@ -537,4 +530,45 @@ bool GenerateMessageFormats(const char[] config, const char[] game)
 	LogMessage("Message formats generated for game '%s'.", game);
 	CloseHandle(hKV);
 	return true;
+}
+
+public int Native_GetChatFlagString(Handle plugin, int numParams)
+{
+	eChatFlags flag = GetNativeCell(1);
+	int iSize = GetNativeCell(3);
+
+	char sFlag[12];
+	IntToString(flag, sFlag, sizeof(sFlag));
+
+	char sName[512];
+	GetTrieString(hTrie_MessageNames, sFlag, sName, sizeof(sName));
+
+	char[] sFormat = new char[iSize];
+	GetTrieString(hTrie_MessageFormats, sName, sFormat, iSize);
+
+	SetNativeString(2, sFormat, iSize);
+}
+
+eChatFlags RetrieveChatFlag(const char[] sFormatString)
+{
+	eChatFlags cFlag = ChatFlag_Invalid;
+
+	if (StrContains(sFormatString, "all") != -1)
+	{
+		cFlag = ChatFlag_All;
+	}
+	else if (StrContains(sFormatString, "team") != -1 || StrContains(sFormatString, "survivor") != -1 || StrContains(sFormatString, "infected") != -1 || StrContains(sFormatString, "Cstrike_Chat_CT") != -1 || StrContains(sFormatString, "Cstrike_Chat_T") != -1)
+	{
+		cFlag = ChatFlag_Team;
+	}
+	else if (StrContains(sFormatString, "spec") != -1)
+	{
+		cFlag = ChatFlag_Spec;
+	}
+	else if (StrContains(sFormatString, "dead") != -1)
+	{
+		cFlag = ChatFlag_Dead;
+	}
+
+	return cFlag;
 }
