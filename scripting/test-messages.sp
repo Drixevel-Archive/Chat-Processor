@@ -1,12 +1,6 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_NAME "Test Messages"
-#define PLUGIN_AUTHOR "Keith Warren (Drixevel)"
-#define PLUGIN_DESCRIPTION "Tests the Chat-Processor plugin."
-#define PLUGIN_VERSION "1.0.0"
-#define PLUGIN_CONTACT "http://www.drixevel.com/"
-
 #include <sourcemod>
 #include <chat-processor>
 
@@ -15,7 +9,7 @@ public Plugin myinfo =
 	name = "Test Messages",
 	author = "Keith Warren (Drixevel)",
 	description = "Tests the Chat-Processor plugin.",
-	version = "1.0.0",
+	version = "1.0.1",
 	url = "http://www.drixevel.com/"
 };
 
