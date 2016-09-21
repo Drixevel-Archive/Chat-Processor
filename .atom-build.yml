@@ -1,0 +1,6 @@
+{
+  "cmd": "scripting/spcomp.exe",
+  "args": [ "-i{PROJECT_PATH}/include", "-o{FILE_ACTIVE_PATH}/../plugins/{FILE_ACTIVE_NAME_BASE}.smx", "{FILE_ACTIVE}" ],
+  "sh": false,
+  "cwd": "{PROJECT_PATH}"
+}
