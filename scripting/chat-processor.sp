@@ -6,7 +6,7 @@
 #define PLUGIN_NAME "Chat-Processor"
 #define PLUGIN_AUTHOR "Keith Warren (Drixevel)"
 #define PLUGIN_DESCRIPTION "Replacement for Simple Chat Processor."
-#define PLUGIN_VERSION "2.0.0"
+#define PLUGIN_VERSION "2.0.1"
 #define PLUGIN_CONTACT "http://www.drixevel.com/"
 
 //Includes
@@ -21,6 +21,7 @@ Handle hForward_OnChatMessagePost;
 bool bProto;
 Handle hTrie_MessageFormats;
 bool bHooked;
+char sLastMessage[MAXPLAYERS + 1][MAXLENGTH_BUFFER];
 
 public Plugin myinfo =
 {
@@ -150,6 +151,13 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 		case true: PbReadString(msg, "params", sMessage, sizeof(sMessage), 1);
 		case false: if (BfGetNumBytesLeft(msg)) BfReadString(msg, sMessage, sizeof(sMessage));
 	}
+
+	if (StrEqual(sLastMessage[iSender], sMessage))
+	{
+		return Plugin_Stop;
+	}
+
+	strcopy(sLastMessage[iSender], MAXLENGTH_BUFFER, sMessage);
 
 	if (GetConVarBool(hConVars[4]))
 	{
@@ -532,10 +540,10 @@ public int Native_GetFlagFormatString(Handle plugin, int numParams)
 	int iSize;
 	GetNativeStringLength(1, iSize);
 
-	char[] sFlag = new char[iSize];
-	GetNativeString(1, sFlag, iSize);
+	char[] sFlag = new char[iSize + 1];
+	GetNativeString(1, sFlag, iSize + 1);
 
-	char sFormat[512];
+	char sFormat[MAXLENGTH_BUFFER];
 	GetTrieString(hTrie_MessageFormats, sFlag, sFormat, sizeof(sFormat));
 
 	SetNativeString(2, sFormat, GetNativeCell(3));
