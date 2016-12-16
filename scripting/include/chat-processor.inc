@@ -67,7 +67,7 @@ public __pl_chat_processor_SetNTVOptional()
 }
 #endif
 
-public SharedPlugin _pl_chat_processor =
+public SharedPlugin __pl_chat_processor =
 {
 	name = "chat-processor",
 	file = "chat-processor.smx",
