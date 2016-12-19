@@ -1,0 +1,15 @@
+diff a/scripting/chat-processor.sp b/scripting/chat-processor.sp	(rejected hunks)
+@@ -152,6 +152,13 @@
+ 		case false: if (BfGetNumBytesLeft(msg)) BfReadString(msg, sMessage, sizeof(sMessage));
+ 	}
+ 
++	if (StrEqual(sLastMessage[iSender], sMessage))
++	{
++		return Plugin_Stop;
++	}
++
++	strcopy(sLastMessage[iSender], MAXLENGTH_BUFFER, sMessage);
++
+ 	if (GetConVarBool(hConVars[4]))
+ 	{
+ 		CRemoveColors(sName, sizeof(sName));

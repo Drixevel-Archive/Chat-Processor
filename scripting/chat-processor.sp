@@ -21,7 +21,6 @@ Handle hForward_OnChatMessagePost;
 bool bProto;
 Handle hTrie_MessageFormats;
 bool bHooked;
-char sLastMessage[MAXPLAYERS + 1][MAXLENGTH_BUFFER];
 
 public Plugin myinfo =
 {
@@ -151,13 +150,6 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 		case true: PbReadString(msg, "params", sMessage, sizeof(sMessage), 1);
 		case false: if (BfGetNumBytesLeft(msg)) BfReadString(msg, sMessage, sizeof(sMessage));
 	}
-
-	if (StrEqual(sLastMessage[iSender], sMessage))
-	{
-		return Plugin_Stop;
-	}
-
-	strcopy(sLastMessage[iSender], MAXLENGTH_BUFFER, sMessage);
 
 	if (GetConVarBool(hConVars[4]))
 	{
