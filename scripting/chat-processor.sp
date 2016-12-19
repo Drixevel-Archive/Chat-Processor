@@ -21,7 +21,6 @@ Handle hForward_OnChatMessagePost;
 bool bProto;
 Handle hTrie_MessageFormats;
 bool bHooked;
-char sLastMessage[MAXPLAYERS + 1][MAXLENGTH_BUFFER];
 
 public Plugin myinfo =
 {
@@ -152,13 +151,6 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 		case false: if (BfGetNumBytesLeft(msg)) BfReadString(msg, sMessage, sizeof(sMessage));
 	}
 
-	if (StrEqual(sLastMessage[iSender], sMessage))
-	{
-		return Plugin_Stop;
-	}
-
-	strcopy(sLastMessage[iSender], MAXLENGTH_BUFFER, sMessage);
-
 	if (GetConVarBool(hConVars[4]))
 	{
 		CRemoveColors(sName, sizeof(sName));
@@ -166,9 +158,18 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 	}
 
 	Handle hRecipients = CreateArray();
+	
 	for (int i = 0; i < playersNum; i++)
 	{
-		PushArrayCell(hRecipients, players[i]);
+		if(FindValueInArray(hRecipients, players[i]) == -1) 
+		{
+			PushArrayCell(hRecipients, players[i]);
+		}
+	}
+	
+	if(FindValueInArray(hRecipients, iSender) == -1) 
+	{
+		PushArrayCell(hRecipients, iSender);
 	}
 
 	bool bProcessColors = GetConVarBool(hConVars[2]);
@@ -231,12 +232,19 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 			WritePackString(hPack, sFormat);
 			WritePackCell(hPack, bChat);
 			WritePackCell(hPack, iResults);
-
-			RequestFrame(Frame_OnChatMessage_SayText2, hPack);
+			WritePackCell(hPack, msg);
+			
+			if(!bProto) {
+				RequestFrame(Frame_OnChatMessage_SayText2, hPack);
+				return Plugin_Handled;
+			} else {
+				Frame_OnChatMessage_SayText2(hPack);
+				
+			}
 		}
 	}
-
-	return Plugin_Handled;
+	
+	return Plugin_Continue;
 }
 
 public void Frame_OnChatMessage_SayText2(any data)
@@ -245,7 +253,6 @@ public void Frame_OnChatMessage_SayText2(any data)
 
 	int iSender = ReadPackCell(data);
 	Handle hRecipients = ReadPackCell(data);
-
 	char sName[MAXLENGTH_NAME];
 	ReadPackString(data, sName, sizeof(sName));
 
@@ -263,8 +270,16 @@ public void Frame_OnChatMessage_SayText2(any data)
 
 	bool bChat = ReadPackCell(data);
 	Action iResults = view_as<Action>(ReadPackCell(data));
+	BfRead bfMsg = view_as<BfRead>(ReadPackCell(data));
 
 	CloseHandle(data);
+	
+	int[] iRecipients = new int[MaxClients];
+	int iNumRecipients = GetArraySize(hRecipients);
+	
+	for (int i = 0; i < iNumRecipients; i++) {
+		iRecipients[i] = GetArrayCell(hRecipients, i);
+	}
 
 	char sBuffer[MAXLENGTH_BUFFER];
 	strcopy(sBuffer, sizeof(sBuffer), sFormat);
@@ -279,14 +294,16 @@ public void Frame_OnChatMessage_SayText2(any data)
 
 	if (iResults == Plugin_Changed)
 	{
-		for (int i = 0; i < GetArraySize(hRecipients); i++)
-		{
-			int client = GetArrayCell(hRecipients, i);
-
-			if (IsClientInGame(client))
-			{
-				CSayText2(client, sBuffer, iSender, bChat);
-			}
+		if(!bProto) {
+			Handle hMsg = StartMessage("SayText2", iRecipients, iNumRecipients, USERMSG_RELIABLE|USERMSG_BLOCKHOOKS);
+			
+			BfWriteByte(hMsg, iSender);
+			BfWriteByte(hMsg, bChat);
+			BfWriteString(hMsg, sBuffer);
+			EndMessage();
+		
+		} else {
+			PbSetString(bfMsg, "msg_name", sBuffer);
 		}
 	}
 
