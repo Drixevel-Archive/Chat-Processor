@@ -224,6 +224,24 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 			{
 				Format(sName, sizeof(sName), "\x03%s", sName);
 			}
+			
+			int iRecipients = GetArraySize(hRecipients);
+			int iTemp = -1; int iTempCount = 0;
+			
+			for (int i = 0; i < iRecipients; i++) {
+				iTempCount = 0; iTemp = GetArrayCell(hRecipients, i);
+				
+				for (int j = 1; j <= MaxClients; j++) {
+					if (j == iTemp) {
+						iTempCount++;
+					}
+					
+					if (iTempCount > 1) {
+						RemoveFromArray(hRecipients, i);
+						iTempCount--;
+					}
+				}
+			}
 
 			Handle hPack = CreateDataPack();
 			WritePackCell(hPack, iSender);
