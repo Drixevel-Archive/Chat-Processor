@@ -159,18 +159,23 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 
 	Handle hRecipients = CreateArray();
 	
+	// These while loops are probably very overkill but should theoretically eliminate any possible duplication.
+	int iIndex = -1;
+	
 	for (int i = 0; i < playersNum; i++)
 	{
-		if(FindValueInArray(hRecipients, players[i]) == -1) 
-		{
-			PushArrayCell(hRecipients, players[i]);
+		while ((iIndex = FindValueInArray(hRecipients, players[i]) != -1)) {
+			RemoveFromArray(hRecipients, iIndex);
 		}
+		
+		PushArrayCell(hRecipients, players[i]);
 	}
 	
-	if(FindValueInArray(hRecipients, iSender) == -1) 
-	{
-		PushArrayCell(hRecipients, iSender);
+	while ((iIndex = FindValueInArray(hRecipients, iSender) != -1)) {
+		RemoveFromArray(hRecipients, iIndex);
 	}
+		
+	PushArrayCell(hRecipients, iSender);
 
 	bool bProcessColors = GetConVarBool(hConVars[2]);
 	bool bRemoveColors = GetConVarBool(hConVars[3]);
@@ -219,6 +224,24 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 			{
 				Format(sName, sizeof(sName), "\x03%s", sName);
 			}
+			
+			int iRecipients = GetArraySize(hRecipients);
+			int iTemp = -1; int iTempCount = 0;
+			
+			for (int i = 0; i < iRecipients; i++) {
+				iTempCount = 0; iTemp = GetArrayCell(hRecipients, i);
+				
+				for (int j = 1; j <= MaxClients; j++) {
+					if (j == iTemp) {
+						iTempCount++;
+					}
+					
+					if (iTempCount > 1) {
+						RemoveFromArray(hRecipients, i);
+						iTempCount--;
+					}
+				}
+			}
 
 			Handle hPack = CreateDataPack();
 			WritePackCell(hPack, iSender);
@@ -239,7 +262,6 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 				return Plugin_Handled;
 			} else {
 				Frame_OnChatMessage_SayText2(hPack);
-				
 			}
 		}
 	}
