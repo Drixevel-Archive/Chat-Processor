@@ -5,9 +5,9 @@
 
 //Globals
 #define MAXLENGTH_FLAG		32
-#define MAXLENGTH_NAME		64
+#define MAXLENGTH_NAME		128
 #define MAXLENGTH_MESSAGE	128
-#define MAXLENGTH_BUFFER		256
+#define MAXLENGTH_BUFFER	255
 
 //Natives
 /**
@@ -42,7 +42,7 @@ native void ChatProcessor_GetFlagFormatString(const char[] sFlag, char[] sBuffer
 *  - Plugin_Changed		Fires the post-forward below and prints out a message.
 *  - Plugin_Handled		Fires the post-forward below but doesn't print a message.
 **/
-forward Action OnChatMessage(int& author, ArrayList recipients, char[] flagstring, char[] name, char[] message, bool& processcolors, bool& removecolors);
+forward Action CP_OnChatMessage(int& author, ArrayList recipients, char[] flagstring, char[] name, char[] message, bool& processcolors, bool& removecolors);
 
 /**
 * Called after the chat message is sent to the designated clients by the author.
@@ -58,7 +58,7 @@ forward Action OnChatMessage(int& author, ArrayList recipients, char[] flagstrin
 *
 * noreturn
 **/
-forward void OnChatMessagePost(int author, ArrayList recipients, const char[] flagstring, const char[] formatstring, const char[] name, const char[] message, bool processcolors, bool removecolors);
+forward void CP_OnChatMessagePost(int author, ArrayList recipients, const char[] flagstring, const char[] formatstring, const char[] name, const char[] message, bool processcolors, bool removecolors);
 
 #if !defined REQUIRE_PLUGIN
 public __pl_chat_processor_SetNTVOptional()

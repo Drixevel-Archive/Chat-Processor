@@ -21,13 +21,13 @@ public void OnPluginStart()
 	cvar_Status = CreateConVar("sm_chatprocessor_testmessages", "0", "Status for this plugin.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 }
 
-public Action OnChatMessage(int& author, ArrayList recipients, char[] flagstring, char[] name, char[] message, bool& processcolors, bool& removecolors)
+public Action CP_OnChatMessage(int& author, ArrayList recipients, char[] flagstring, char[] name, char[] message, bool& processcolors, bool& removecolors)
 {
 	if (!GetConVarBool(cvar_Status))
 	{
 		return Plugin_Continue;
 	}
-	
+
 	char sNamesBuffer[1024];
 
 	for (int i = 0; i < GetArraySize(recipients); i++)
@@ -51,13 +51,13 @@ public Action OnChatMessage(int& author, ArrayList recipients, char[] flagstring
 	return Plugin_Changed;
 }
 
-public void OnChatMessagePost(int author, ArrayList recipients, const char[] flagstring, const char[] formatstring, const char[] name, const char[] message, bool processcolors, bool removecolors)
+public void CP_OnChatMessagePost(int author, ArrayList recipients, const char[] flagstring, const char[] formatstring, const char[] name, const char[] message, bool processcolors, bool removecolors)
 {
 	if (!GetConVarBool(cvar_Status))
 	{
 		return;
 	}
-	
+
 	char sNamesBuffer[1024];
 
 	for (int i = 0; i < GetArraySize(recipients); i++)

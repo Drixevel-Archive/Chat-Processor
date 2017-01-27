@@ -6,7 +6,7 @@
 #define PLUGIN_NAME "Chat-Processor"
 #define PLUGIN_AUTHOR "Keith Warren (Drixevel)"
 #define PLUGIN_DESCRIPTION "Replacement for Simple Chat Processor."
-#define PLUGIN_VERSION "2.0.1"
+#define PLUGIN_VERSION "2.0.2"
 #define PLUGIN_CONTACT "http://www.drixevel.com/"
 
 //Includes
@@ -21,7 +21,7 @@ Handle hForward_OnChatMessagePost;
 bool bProto;
 Handle hTrie_MessageFormats;
 bool bHooked;
-bool bNewMsg[MAXPLAYERS+1] = {false, ...};
+bool bNewMsg[MAXPLAYERS + 1];
 
 public Plugin myinfo =
 {
@@ -37,8 +37,8 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	RegPluginLibrary("chat-processor");
 	CreateNative("ChatProcessor_GetFlagFormatString", Native_GetFlagFormatString);
 
-	hForward_OnChatMessage = CreateGlobalForward("OnChatMessage", ET_Hook, Param_CellByRef, Param_Cell, Param_String, Param_String, Param_String, Param_CellByRef, Param_CellByRef);
-	hForward_OnChatMessagePost = CreateGlobalForward("OnChatMessagePost", ET_Ignore, Param_Cell, Param_Cell, Param_String, Param_String, Param_String, Param_String, Param_Cell, Param_Cell);
+	hForward_OnChatMessage = CreateGlobalForward("CP_OnChatMessage", ET_Hook, Param_CellByRef, Param_Cell, Param_String, Param_String, Param_String, Param_CellByRef, Param_CellByRef);
+	hForward_OnChatMessagePost = CreateGlobalForward("CP_OnChatMessagePost", ET_Ignore, Param_Cell, Param_Cell, Param_String, Param_String, Param_String, Param_String, Param_Cell, Param_Cell);
 
 	return APLRes_Success;
 }
@@ -55,10 +55,10 @@ public void OnPluginStart()
 	hConVars[2] = CreateConVar("sm_chatprocessor_process_colors_default", "1", "Default setting to give forwards to process colors.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	hConVars[3] = CreateConVar("sm_chatprocessor_remove_colors_default", "0", "Default setting to give forwards to remove colors.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	hConVars[4] = CreateConVar("sm_chatprocessor_strip_colors", "1", "Remove color tags from the name and the message before processing the output.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
-	
+
 	AddCommandListener(Command_Say, "say");
 	AddCommandListener(Command_Say, "say_team");
-	
+
 	AutoExecConfig();
 
 	hTrie_MessageFormats = CreateTrie();
@@ -140,8 +140,8 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 		case true: PbReadString(msg, "msg_name", sFlag, sizeof(sFlag));
 		case false: BfReadString(msg, sFlag, sizeof(sFlag));
 	}
-	
-	// protobuf messages (at least in cs:go) are sent once for every client, 
+
+	// protobuf messages (at least in cs:go) are sent once for every client,
 	// but only if that client isn't a spectator
 	// since we want to allow modification of recipients, we have to block all other messages
 	// and start our own ones
@@ -156,7 +156,7 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 			bNewMsg[iSender] = false;
 		}
 	}
-	
+
 	char sFormat[MAXLENGTH_BUFFER];
 	if (!GetTrieString(hTrie_MessageFormats, sFlag, sFormat, sizeof(sFormat)))
 	{
@@ -184,16 +184,16 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 	}
 
 	Handle hRecipients = CreateArray();
-	
+
 	for (int i = 0; i < playersNum; i++)
 	{
-		if(FindValueInArray(hRecipients, players[i]) == -1) 
+		if (FindValueInArray(hRecipients, players[i]) == -1)
 		{
 			PushArrayCell(hRecipients, players[i]);
 		}
 	}
-	
-	if(FindValueInArray(hRecipients, iSender) == -1) 
+
+	if (FindValueInArray(hRecipients, iSender) == -1)
 	{
 		PushArrayCell(hRecipients, iSender);
 	}
@@ -258,12 +258,12 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 			WritePackString(hPack, sFormat);
 			WritePackCell(hPack, bChat);
 			WritePackCell(hPack, iResults);
-			
+
 			RequestFrame(Frame_OnChatMessage_SayText2, hPack);
 			return Plugin_Handled;
 		}
 	}
-	
+
 	return Plugin_Continue;
 }
 
@@ -273,7 +273,7 @@ public void Frame_OnChatMessage_SayText2(any data)
 
 	int iSender = ReadPackCell(data);
 	Handle hRecipients = ReadPackCell(data);
-	
+
 	char sName[MAXLENGTH_NAME];
 	ReadPackString(data, sName, sizeof(sName));
 
@@ -293,12 +293,13 @@ public void Frame_OnChatMessage_SayText2(any data)
 	Action iResults = view_as<Action>(ReadPackCell(data));
 
 	CloseHandle(data);
-	
+
 	// only used for non-pb messages
 	int[] iRecipients = new int[MaxClients];
 	int iNumRecipients = GetArraySize(hRecipients);
-	
-	for (int i = 0; i < iNumRecipients; i++) {
+
+	for (int i = 0; i < iNumRecipients; i++)
+	{
 		iRecipients[i] = GetArrayCell(hRecipients, i);
 	}
 
@@ -315,25 +316,40 @@ public void Frame_OnChatMessage_SayText2(any data)
 
 	if (iResults == Plugin_Changed)
 	{
-		if(!bProto)
+		if (bProto)
 		{
-			Handle hMsg = StartMessage("SayText2", iRecipients, iNumRecipients, USERMSG_RELIABLE|USERMSG_BLOCKHOOKS);
-			
-			BfWriteByte(hMsg, iSender);
-			BfWriteByte(hMsg, bChat);
-			BfWriteString(hMsg, sBuffer);
-			EndMessage();
+			for (int i = 0; i < GetArraySize(hRecipients); i++)
+			{
+				int client = GetArrayCell(hRecipients, i);
+
+				if (IsClientInGame(client))
+				{
+					CSayText2(client, sBuffer, iSender, bChat);
+				}
+			}
 		}
 		else
 		{
 			for (int i = 0; i < GetArraySize(hRecipients); i++)
 			{
 				int client = GetArrayCell(hRecipients, i);
+
 				if (IsClientInGame(client))
 				{
-					CSayText2(client, sBuffer, iSender, bChat);
+					CPrintToChat(client, sBuffer);
 				}
 			}
+
+			//Broken, will figure it out later..
+
+			/*
+			Handle hMsg = StartMessage("SayText2", iRecipients, iNumRecipients, USERMSG_RELIABLE | USERMSG_BLOCKHOOKS);
+
+			BfWriteByte(hMsg, iSender);
+			BfWriteByte(hMsg, bChat);
+			BfWriteString(hMsg, sBuffer);
+			EndMessage();
+			*/
 		}
 	}
 
