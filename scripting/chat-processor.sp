@@ -21,6 +21,7 @@ Handle hForward_OnChatMessagePost;
 bool bProto;
 Handle hTrie_MessageFormats;
 bool bHooked;
+bool bNewMsg[MAXPLAYERS+1] = {false, ...};
 
 public Plugin myinfo =
 {
@@ -54,7 +55,10 @@ public void OnPluginStart()
 	hConVars[2] = CreateConVar("sm_chatprocessor_process_colors_default", "1", "Default setting to give forwards to process colors.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	hConVars[3] = CreateConVar("sm_chatprocessor_remove_colors_default", "0", "Default setting to give forwards to remove colors.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	hConVars[4] = CreateConVar("sm_chatprocessor_strip_colors", "1", "Remove color tags from the name and the message before processing the output.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
-
+	
+	AddCommandListener(Command_Say, "say");
+	AddCommandListener(Command_Say, "say_team");
+	
 	AutoExecConfig();
 
 	hTrie_MessageFormats = CreateTrie();
@@ -106,8 +110,15 @@ public void OnConfigsExecuted()
 }
 
 ////////////////////
-//SayText2
+// Chat hook
+public Action Command_Say(int client, const char[] command, int argc)
+{
+	bNewMsg[client] = true;
+	return Plugin_Continue;
+}
 
+////////////////////
+//SayText2
 public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int playersNum, bool reliable, bool init)
 {
 	if (!GetConVarBool(hConVars[0]))
@@ -116,7 +127,6 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 	}
 
 	int iSender = bProto ? PbReadInt(msg, "ent_idx") : BfReadByte(msg);
-
 	if (iSender <= 0)
 	{
 		return Plugin_Continue;
@@ -130,7 +140,23 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 		case true: PbReadString(msg, "msg_name", sFlag, sizeof(sFlag));
 		case false: BfReadString(msg, sFlag, sizeof(sFlag));
 	}
-
+	
+	// protobuf messages (at least in cs:go) are sent once for every client, 
+	// but only if that client isn't a spectator
+	// since we want to allow modification of recipients, we have to block all other messages
+	// and start our own ones
+	if(bProto)
+	{
+		if(StrContains(sFlag, "_Spec") == -1 && !bNewMsg[iSender])
+		{
+			return Plugin_Stop;
+		}
+		else
+		{
+			bNewMsg[iSender] = false;
+		}
+	}
+	
 	char sFormat[MAXLENGTH_BUFFER];
 	if (!GetTrieString(hTrie_MessageFormats, sFlag, sFormat, sizeof(sFormat)))
 	{
@@ -232,15 +258,9 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 			WritePackString(hPack, sFormat);
 			WritePackCell(hPack, bChat);
 			WritePackCell(hPack, iResults);
-			WritePackCell(hPack, msg);
 			
-			if(!bProto) {
-				RequestFrame(Frame_OnChatMessage_SayText2, hPack);
-				return Plugin_Handled;
-			} else {
-				Frame_OnChatMessage_SayText2(hPack);
-				
-			}
+			RequestFrame(Frame_OnChatMessage_SayText2, hPack);
+			return Plugin_Handled;
 		}
 	}
 	
@@ -253,6 +273,7 @@ public void Frame_OnChatMessage_SayText2(any data)
 
 	int iSender = ReadPackCell(data);
 	Handle hRecipients = ReadPackCell(data);
+	
 	char sName[MAXLENGTH_NAME];
 	ReadPackString(data, sName, sizeof(sName));
 
@@ -270,10 +291,10 @@ public void Frame_OnChatMessage_SayText2(any data)
 
 	bool bChat = ReadPackCell(data);
 	Action iResults = view_as<Action>(ReadPackCell(data));
-	BfRead bfMsg = view_as<BfRead>(ReadPackCell(data));
 
 	CloseHandle(data);
 	
+	// only used for non-pb messages
 	int[] iRecipients = new int[MaxClients];
 	int iNumRecipients = GetArraySize(hRecipients);
 	
@@ -294,16 +315,25 @@ public void Frame_OnChatMessage_SayText2(any data)
 
 	if (iResults == Plugin_Changed)
 	{
-		if(!bProto) {
+		if(!bProto)
+		{
 			Handle hMsg = StartMessage("SayText2", iRecipients, iNumRecipients, USERMSG_RELIABLE|USERMSG_BLOCKHOOKS);
 			
 			BfWriteByte(hMsg, iSender);
 			BfWriteByte(hMsg, bChat);
 			BfWriteString(hMsg, sBuffer);
 			EndMessage();
-		
-		} else {
-			PbSetString(bfMsg, "msg_name", sBuffer);
+		}
+		else
+		{
+			for (int i = 0; i < GetArraySize(hRecipients); i++)
+			{
+				int client = GetArrayCell(hRecipients, i);
+				if (IsClientInGame(client))
+				{
+					CSayText2(client, sBuffer, iSender, bChat);
+				}
+			}
 		}
 	}
 
