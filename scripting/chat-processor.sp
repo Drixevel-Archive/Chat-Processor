@@ -147,7 +147,7 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 	// and start our own ones
 	if(bProto)
 	{
-		if(StrContains(sFlag, "_Spec") == -1 && !bNewMsg[iSender])
+		if(!bNewMsg[iSender])
 		{
 			return Plugin_Stop;
 		}
