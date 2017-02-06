@@ -1,5 +1,6 @@
 .atom-build.yml
 scripting/compile.exe
+scripting/compile.dat
 scripting/spcomp.exe
 scripting/include/admin.inc
 scripting/include/adminmenu.inc

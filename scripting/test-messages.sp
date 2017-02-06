@@ -27,52 +27,9 @@ public Action CP_OnChatMessage(int& author, ArrayList recipients, char[] flagstr
 	{
 		return Plugin_Continue;
 	}
-
-	char sNamesBuffer[1024];
-
-	for (int i = 0; i < GetArraySize(recipients); i++)
-	{
-		int client = GetArrayCell(recipients, i);
-
-		if (i == 0)
-		{
-			Format(sNamesBuffer, sizeof(sNamesBuffer), "%N", client);
-		}
-		else
-		{
-			Format(sNamesBuffer, sizeof(sNamesBuffer), "%s, %N", sNamesBuffer, client);
-		}
-	}
-
-	PrintToServer("---MESSAGE:\nAuthor: %i\nFlag: %s\nName: %s\nMessage: %s\nProcessColors: %s\nRemoveColors: %s\nRecipients: %s", author, flagstring, name, message, processcolors ? "true" : "false", removecolors ? "true" : "false", sNamesBuffer);
-
+	
 	Format(name, MAXLENGTH_NAME, "[Test] {red}%s", name);
 	Format(message, MAXLENGTH_MESSAGE, "{blue}%s", message);
+	
 	return Plugin_Changed;
-}
-
-public void CP_OnChatMessagePost(int author, ArrayList recipients, const char[] flagstring, const char[] formatstring, const char[] name, const char[] message, bool processcolors, bool removecolors)
-{
-	if (!GetConVarBool(cvar_Status))
-	{
-		return;
-	}
-
-	char sNamesBuffer[1024];
-
-	for (int i = 0; i < GetArraySize(recipients); i++)
-	{
-		int client = GetArrayCell(recipients, i);
-
-		if (i == 0)
-		{
-			Format(sNamesBuffer, sizeof(sNamesBuffer), "%N", client);
-		}
-		else
-		{
-			Format(sNamesBuffer, sizeof(sNamesBuffer), "%s, %N", sNamesBuffer, client);
-		}
-	}
-
-	PrintToServer("---MESSAGE POST:\nAuthor: %i\nFlag: %s\nFormat: %s\nName: %s\nMessage: %s\nProcessColors: %s\nRemoveColors: %s\nRecipients: %s", author, flagstring, formatstring, name, message, processcolors ? "true" : "false", removecolors ? "true" : "false", sNamesBuffer);
 }
