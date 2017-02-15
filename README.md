@@ -1,2 +1,2 @@
-# Chat-Processor
-Chat Processor is a Sourcemod-based plugin system designed to allow other plugins to manipulate text directly in the engine. This is essentially a giant upgrade and optimization project for the old Simple Chat Processors plugin which now has bugs and other weird design decisions.
+# Sourcemod - Chat Processor
+A Sourcemod project which allows plugin developers access to API natives and forwards they can use to manipulate chat and/or manage it for the Source Engine.
