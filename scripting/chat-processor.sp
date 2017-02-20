@@ -8,7 +8,7 @@
 #define PLUGIN_NAME "Chat-Processor"
 #define PLUGIN_AUTHOR "Keith Warren (Drixevel)"
 #define PLUGIN_DESCRIPTION "Replacement for Simple Chat Processor."
-#define PLUGIN_VERSION "2.0.3"
+#define PLUGIN_VERSION "2.0.4"
 #define PLUGIN_CONTACT "http://www.drixevel.com/"
 
 ////////////////////
@@ -133,7 +133,7 @@ public Action Command_Say(int client, const char[] command, int argc)
 ////////////////////
 //SayText2
 public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int playersNum, bool reliable, bool init)
-{
+{	
 	//Check if the plugin is disabled.
 	if (!GetConVarBool(hConVars[0]))
 	{
@@ -146,6 +146,16 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 	{
 		return Plugin_Continue;
 	}
+		
+	//Stops double messages in-general.
+	if (bNewMsg[iSender])
+	{
+		bNewMsg[iSender] = false;
+	}
+	else
+	{
+		return Plugin_Stop;
+	}
 	
 	//Chat Type
 	bool bChat = bProto ? PbReadBool(msg, "chat") : view_as<bool>(BfReadByte(msg));
@@ -156,16 +166,6 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 	{
 		case true: PbReadString(msg, "msg_name", sFlag, sizeof(sFlag));
 		case false: BfReadString(msg, sFlag, sizeof(sFlag));
-	}
-
-	//Stops double messages in-general.
-	if(bNewMsg[iSender])
-	{
-		bNewMsg[iSender] = false;
-	}
-	else
-	{
-		return Plugin_Stop;
 	}
 	
 	//Retrieve the format template based on the flag name above we retrieved.
@@ -203,17 +203,12 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 	//It's easier just to use a handle here for an array instead of passing 2 arguments through both forwards with static arrays.
 	Handle hRecipients = CreateArray();
 
-	for (int i = 0; i < playersNum; i++)
+	for (int i = 1; i < MaxClients; i++)
 	{
-		if (FindValueInArray(hRecipients, players[i]) == -1)
+		if (IsClientInGame(i) && !IsFakeClient(i))
 		{
-			PushArrayCell(hRecipients, players[i]);
+			PushArrayCell(hRecipients, i);
 		}
-	}
-
-	if (FindValueInArray(hRecipients, iSender) == -1)
-	{
-		PushArrayCell(hRecipients, iSender);
 	}
 	
 	//Retrieve the default values for coloring and use these as a base for developers to change later.
@@ -244,7 +239,7 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 	//We ran into a native error, gotta report it.
 	if (error != SP_ERROR_NONE)
 	{
-		CloseHandle(hRecipients);
+		delete hRecipients;
 		ThrowNativeError(error, "Global Forward 'CP_OnChatMessage' has failed to fire. [Error code: %i]", error);
 		return Plugin_Continue;
 	}
@@ -252,6 +247,7 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 	//Check if the flag string was changed after the pre-forward and if so, re-retrieve the format string.
 	if (!StrEqual(sFlag, sFlagCopy) && !GetTrieString(hTrie_MessageFormats, sFlag, sFormat, sizeof(sFormat)))
 	{
+		delete hRecipients;
 		return Plugin_Continue;
 	}
 	
@@ -260,30 +256,22 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 		Format(sName, sizeof(sName), "\x03%s", sName);
 	}
 	
-	//We only want to take more actions here if they return handled or changed.
-	//Handled allows the post-forward to fire only.
-	//Changed allows the post-forward to fire and also handles printing out colored chat properly with better buffer sizes.
-	if (iResults == Plugin_Changed || iResults == Plugin_Handled)
-	{
-		Handle hPack = CreateDataPack();
-		WritePackCell(hPack, iSender);
-		WritePackCell(hPack, hRecipients);
-		WritePackString(hPack, sName);
-		WritePackString(hPack, sMessage);
-		WritePackString(hPack, sFlag);
-		WritePackCell(hPack, bProcessColors);
-		WritePackCell(hPack, bRemoveColors);
-
-		WritePackString(hPack, sFormat);
-		WritePackCell(hPack, bChat);
-		WritePackCell(hPack, iResults);
-
-		RequestFrame(Frame_OnChatMessage_SayText2, hPack);
-		return Plugin_Handled;
-	}
+	Handle hPack = CreateDataPack();
+	WritePackCell(hPack, iSender);
+	WritePackCell(hPack, hRecipients);
+	WritePackString(hPack, sName);
+	WritePackString(hPack, sMessage);
+	WritePackString(hPack, sFlag);
+	WritePackCell(hPack, bProcessColors);
+	WritePackCell(hPack, bRemoveColors);
 	
-	delete hRecipients;
-	return iResults;
+	WritePackString(hPack, sFormat);
+	WritePackCell(hPack, bChat);
+	WritePackCell(hPack, iResults);
+
+	RequestFrame(Frame_OnChatMessage_SayText2, hPack);
+	
+	return Plugin_Stop;
 }
 
 public void Frame_OnChatMessage_SayText2(any data)
@@ -310,68 +298,54 @@ public void Frame_OnChatMessage_SayText2(any data)
 	ReadPackString(data, sFormat, sizeof(sFormat));
 
 	bool bChat = ReadPackCell(data);
-	Action iResults = view_as<Action>(ReadPackCell(data));
+	Action iResults = ReadPackCell(data);
 
 	CloseHandle(data);
 	
-	//If the results are returned as 'Plugin_Changed', we print out the message with colors ourselves.
-	//The reason we do this is because it's easier for engines that have character limits that favor messages over names so names are hard to color.
-	if (iResults == Plugin_Changed)
+	//Make a copy of the format buffer and use that as the print so the format string stays the same.
+	char sBuffer[MAXLENGTH_BUFFER];
+	strcopy(sBuffer, sizeof(sBuffer), sFormat);
+	
+	//Make sure that the text is default for the message if no colors are present.
+	if (iResults != Plugin_Changed && !bProcessColors || bRemoveColors)
 	{
-		//Make a copy of the format buffer and use that as the print so the format string stays the same.
-		char sBuffer[MAXLENGTH_BUFFER];
-		strcopy(sBuffer, sizeof(sBuffer), sFormat);
-		
-		//Replace the specific characters for the name and message strings.
-		ReplaceString(sBuffer, sizeof(sBuffer), "{1}", sName);
-		ReplaceString(sBuffer, sizeof(sBuffer), "{2}", sMessage);
-		
-		//Process colors based on the final results we have.
-		if (bProcessColors)
+		Format(sMessage, sizeof(sMessage), "{default}%s", sMessage);
+	}
+	
+	//Replace the specific characters for the name and message strings.
+	ReplaceString(sBuffer, sizeof(sBuffer), "{1}", sName);
+	ReplaceString(sBuffer, sizeof(sBuffer), "{2}", sMessage);
+	
+	//Process colors based on the final results we have.
+	if (iResults == Plugin_Changed && bProcessColors)
+	{
+		CProcessVariables(sBuffer, sizeof(sBuffer), bRemoveColors);
+	}
+	
+	//Send the message to clients.
+	if (bProto)
+	{
+		for (int i = 0; i < GetArraySize(hRecipients); i++)
 		{
-			CProcessVariables(sBuffer, sizeof(sBuffer), bRemoveColors);
-		}
-		
-		//Send the message to clients.
-		if (bProto)
-		{
-			for (int i = 0; i < GetArraySize(hRecipients); i++)
-			{
-				int client = GetArrayCell(hRecipients, i);
+			int client = GetArrayCell(hRecipients, i);
 
-				if (IsClientInGame(client))
-				{
-					CSayText2(client, sBuffer, iSender, bChat);
-				}
+			if (IsClientInGame(client))
+			{
+				CSayText2(client, sBuffer, iSender, bChat);
 			}
 		}
-		else
+	}
+	else
+	{
+		for (int i = 0; i < GetArraySize(hRecipients); i++)
 		{
-			for (int i = 0; i < GetArraySize(hRecipients); i++)
+			int client = GetArrayCell(hRecipients, i);
+
+			if (IsClientInGame(client))
 			{
-				int client = GetArrayCell(hRecipients, i);
-
-				if (IsClientInGame(client))
-				{
-					CPrintToChat(client, sBuffer);
-				}
+				CSetNextAuthor(iSender);
+				CPrintToChat(client, sBuffer);
 			}
-
-			//Broken, will figure it out later..
-			/*int[] iRecipients = new int[MaxClients];
-			int iNumRecipients = GetArraySize(hRecipients);
-
-			for (int i = 0; i < iNumRecipients; i++)
-			{
-				iRecipients[i] = GetArrayCell(hRecipients, i);
-			}
-			
-			Handle hMsg = StartMessage("SayText2", iRecipients, iNumRecipients, USERMSG_RELIABLE | USERMSG_BLOCKHOOKS);
-
-			BfWriteByte(hMsg, iSender);
-			BfWriteByte(hMsg, bChat);
-			BfWriteString(hMsg, sBuffer);
-			EndMessage();*/
 		}
 	}
 	
