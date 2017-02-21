@@ -131,7 +131,10 @@ public void OnConfigsExecuted()
 // Chat hook
 public Action Command_Say(int client, const char[] command, int argc)
 {
-	bNewMsg[client] = true;
+	if (client > 0 && client <= MaxClients)
+	{
+		bNewMsg[client] = true;
+	}
 }
 
 ////////////////////
