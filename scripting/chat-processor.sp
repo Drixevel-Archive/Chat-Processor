@@ -19,7 +19,7 @@
 
 ////////////////////
 //Globals
-ConVar hConVars[5];
+ConVar hConVars[6];
 
 Handle hForward_OnChatMessage;
 Handle hForward_OnChatMessagePost;
@@ -69,7 +69,8 @@ public void OnPluginStart()
 	hConVars[2] = CreateConVar("sm_chatprocessor_process_colors_default", "1", "Default setting to give forwards to process colors.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	hConVars[3] = CreateConVar("sm_chatprocessor_remove_colors_default", "0", "Default setting to give forwards to remove colors.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	hConVars[4] = CreateConVar("sm_chatprocessor_strip_colors", "1", "Remove color tags from the name and the message before processing the output.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
-
+	hConVars[5] = CreateConVar("sm_chatprocessor_bug_checker", "1", "Check if have recipient bug.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+	
 	AddCommandListener(Command_Say, "say");
 	AddCommandListener(Command_Say, "say_team");
 
@@ -201,20 +202,142 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 	}
 	
 	//It's easier just to use a handle here for an array instead of passing 2 arguments through both forwards with static arrays.
-	Handle hRecipients = CreateArray();
-
-	for (int i = 1; i < MaxClients; i++)
+	ArrayList hRecipients = CreateArray();
+	
+	for (int i = 0; i < playersNum; i++)
 	{
-		if (IsClientInGame(i) && !IsFakeClient(i))
+		if (FindValueInArray(hRecipients, players[i]) == -1)
 		{
-			PushArrayCell(hRecipients, i);
+			PushArrayCell(hRecipients, players[i]);
 		}
 	}
 	
+	if (FindValueInArray(hRecipients, iSender) == -1)
+	{
+		PushArrayCell(hRecipients, iSender);
+	}
+
+	// Check if unknown bug?
+	if (GetConVarBool(hConVars[5]))
+	{
+		// Recipient bug? hotfix...
+		if (playersNum <= 1)
+		{
+			ClearArray(hRecipients);
+			
+			bool m_bChatAll = GetChatType(sFlag);
+			
+			if (IsPlayerAlive(iSender))
+			{
+				// If player is alive, so Chat All
+				if (m_bChatAll)
+				{
+					for(int i = 1; i<= MaxClients; ++i)
+					{
+						if (IsClientInGame(i))
+						{
+							PushArrayCell(hRecipients, i);
+						}
+					}
+				}
+				// Chat Team
+				else
+				{
+					for(int i = 1; i<= MaxClients; ++i)
+					{
+						if (IsClientInGame(i) && GetClientTeam(i) == GetClientTeam(iSender))
+						{
+							PushArrayCell(hRecipients, i);
+						}
+					}
+				}
+			}
+			else
+			{
+				// Check Server ConVar
+				switch (GetConVarInt(FindConVar("sv_deadtalk")))
+				{
+					// Disable Dead talk
+					case 0:
+					{
+						if (!m_bChatAll)
+						{
+							for (int i = 1; i<= MaxClients; ++i)
+							{
+								if (IsClientInGame(i) && !IsPlayerAlive(i) && GetClientTeam(i) == GetClientTeam(iSender))
+								{
+									PushArrayCell(hRecipients, i);
+								}
+							}
+						}
+						else
+						{
+							for (int i = 1; i<= MaxClients; ++i)
+							{
+								if (IsClientInGame(i) && !IsPlayerAlive(i))
+								{
+									PushArrayCell(hRecipients, i);
+								}
+							}
+						}
+					}
+					// Dead players ignore teams
+					case 1:
+					{
+						if (!m_bChatAll)
+						{
+							for (int i = 1; i<= MaxClients; ++i)
+							{
+								if (IsClientInGame(i) && !IsPlayerAlive(i) && GetClientTeam(i) == GetClientTeam(iSender))
+								{
+									PushArrayCell(hRecipients, i);
+								}
+							}
+						}
+						else
+						{
+							for (int i = 1; i<= MaxClients; ++i)
+							{
+								if (IsClientInGame(i) && !IsPlayerAlive(i))
+								{
+									PushArrayCell(hRecipients, i);
+								}
+							}
+						}
+					}
+					// Dead players talk to living teammates
+					case 2:
+					{
+						if (!m_bChatAll)
+						{
+							for (int i = 1; i<= MaxClients; ++i)
+							{
+								if (IsClientInGame(i) && GetClientTeam(i) == GetClientTeam(iSender))
+								{
+									PushArrayCell(hRecipients, i);
+								}
+							}
+						}
+						else
+						{
+							for (int i = 1; i<= MaxClients; ++i)
+							{
+								if (IsClientInGame(i))
+								{
+									PushArrayCell(hRecipients, i);
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
 	//Retrieve the default values for coloring and use these as a base for developers to change later.
 	bool bProcessColors = GetConVarBool(hConVars[2]);
 	bool bRemoveColors = GetConVarBool(hConVars[3]);
-	
+
 	//We need to make copy of these strings for checks after the pre-forward has fired.
 	char sNameCopy[MAXLENGTH_NAME];
 	strcopy(sNameCopy, sizeof(sNameCopy), sName);
@@ -255,7 +378,7 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 	{
 		Format(sName, sizeof(sName), "\x03%s", sName);
 	}
-	
+
 	Handle hPack = CreateDataPack();
 	WritePackCell(hPack, iSender);
 	WritePackCell(hPack, hRecipients);
@@ -271,7 +394,7 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 
 	RequestFrame(Frame_OnChatMessage_SayText2, hPack);
 	
-	return Plugin_Stop;
+	return Plugin_Handled;
 }
 
 public void Frame_OnChatMessage_SayText2(any data)
@@ -609,4 +732,14 @@ public int Native_GetFlagFormatString(Handle plugin, int numParams)
 	GetTrieString(hTrie_MessageFormats, sFlag, sFormat, sizeof(sFormat));
 
 	SetNativeString(2, sFormat, GetNativeCell(3));
+}
+
+//GetChatType  
+stock bool GetChatType(const char[] flag)
+{
+	// If to All then return true
+	if(StrContains(flag, "_All") != -1)
+		return true;
+
+	return false;
 }
