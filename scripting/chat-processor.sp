@@ -8,7 +8,7 @@
 #define PLUGIN_NAME "Chat-Processor"
 #define PLUGIN_AUTHOR "Keith Warren (Drixevel)"
 #define PLUGIN_DESCRIPTION "Replacement for Simple Chat Processor."
-#define PLUGIN_VERSION "2.0.4"
+#define PLUGIN_VERSION "2.0.5"
 #define PLUGIN_CONTACT "http://www.drixevel.com/"
 
 ////////////////////
@@ -19,7 +19,11 @@
 
 ////////////////////
 //Globals
-ConVar hConVars[5];
+ConVar convar_Status;
+ConVar convar_Config;
+ConVar convar_Default_ProcessColors;
+ConVar convar_Default_RemoveColors;
+ConVar convar_StripColors;
 
 Handle hForward_OnChatMessage;
 Handle hForward_OnChatMessagePost;
@@ -64,11 +68,11 @@ public void OnPluginStart()
 
 	CreateConVar("sm_chatprocessor_version", PLUGIN_VERSION, PLUGIN_DESCRIPTION, FCVAR_REPLICATED | FCVAR_NOTIFY | FCVAR_SPONLY | FCVAR_DONTRECORD);
 
-	hConVars[0] = CreateConVar("sm_chatprocessor_status", "1", "Status of the plugin.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
-	hConVars[1] = CreateConVar("sm_chatprocessor_config", "configs/chat_processor.cfg", "Name of the message formats config.", FCVAR_NOTIFY);
-	hConVars[2] = CreateConVar("sm_chatprocessor_process_colors_default", "1", "Default setting to give forwards to process colors.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
-	hConVars[3] = CreateConVar("sm_chatprocessor_remove_colors_default", "0", "Default setting to give forwards to remove colors.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
-	hConVars[4] = CreateConVar("sm_chatprocessor_strip_colors", "1", "Remove color tags from the name and the message before processing the output.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+	convar_Status = CreateConVar("sm_chatprocessor_status", "1", "Status of the plugin.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+	convar_Config = CreateConVar("sm_chatprocessor_config", "configs/chat_processor.cfg", "Name of the message formats config.", FCVAR_NOTIFY);
+	convar_Default_ProcessColors = CreateConVar("sm_chatprocessor_process_colors_default", "1", "Default setting to give forwards to process colors.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+	convar_Default_RemoveColors = CreateConVar("sm_chatprocessor_remove_colors_default", "0", "Default setting to give forwards to remove colors.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+	convar_StripColors = CreateConVar("sm_chatprocessor_strip_colors", "1", "Remove color tags from the name and the message before processing the output.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 
 	AddCommandListener(Command_Say, "say");
 	AddCommandListener(Command_Say, "say_team");
@@ -84,7 +88,7 @@ public void OnConfigsExecuted()
 {
 	bHooked = false;
 	
-	if (!GetConVarBool(hConVars[0]))
+	if (!GetConVarBool(convar_Status))
 	{
 		return;
 	}
@@ -93,7 +97,7 @@ public void OnConfigsExecuted()
 	GetGameFolderName(sGame, sizeof(sGame));
 
 	char sConfig[PLATFORM_MAX_PATH];
-	GetConVarString(hConVars[1], sConfig, sizeof(sConfig));
+	GetConVarString(convar_Config, sConfig, sizeof(sConfig));
 
 	GenerateMessageFormats(sConfig, sGame);
 
@@ -133,9 +137,9 @@ public Action Command_Say(int client, const char[] command, int argc)
 ////////////////////
 //SayText2
 public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int playersNum, bool reliable, bool init)
-{	
+{
 	//Check if the plugin is disabled.
-	if (!GetConVarBool(hConVars[0]))
+	if (!GetConVarBool(convar_Status))
 	{
 		return Plugin_Continue;
 	}
@@ -194,7 +198,7 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 	//Clients have the ability to color their chat if they manually type in color tags, this allows server operators to choose if they want their players the ability to do so.
 	//Example: {red}This {white}is {green}a {blue}random {yellow}message.
 	//Goes for both the name and the message.
-	if (GetConVarBool(hConVars[4]))
+	if (GetConVarBool(convar_StripColors))
 	{
 		CRemoveColors(sName, sizeof(sName));
 		CRemoveColors(sMessage, sizeof(sMessage));
@@ -202,22 +206,97 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 	
 	//It's easier just to use a handle here for an array instead of passing 2 arguments through both forwards with static arrays.
 	Handle hRecipients = CreateArray();
+	
+	bool bAllChat = StrContains(sFlag, "_All") != -1;
+	int iDeadTalk = GetConVarInt(FindConVar("sm_deadtalk"));
 
 	for (int i = 1; i < MaxClients; i++)
 	{
-		if (IsClientInGame(i) && !IsFakeClient(i))
+		if (!IsClientInGame(i) || IsFakeClient(i))
 		{
-			PushArrayCell(hRecipients, i);
+			continue;
+		}
+		
+		if (IsPlayerAlive(iSender))
+		{
+			if (bAllChat)
+			{
+				PushArrayCell(hRecipients, i);
+			}
+			else
+			{
+				if (GetClientTeam(iSender) == GetClientTeam(i))
+				{
+					PushArrayCell(hRecipients, i);
+				}
+			}
+		}
+		else
+		{
+			switch (iDeadTalk)
+			{
+				case 0:
+				{
+					if (bAllChat)
+					{
+						if (!IsPlayerAlive(i))
+						{
+							PushArrayCell(hRecipients, i);
+						}
+					}
+					else
+					{
+						if (!IsPlayerAlive(i) && GetClientTeam(iSender) == GetClientTeam(i))
+						{
+							PushArrayCell(hRecipients, i);
+						}
+					}
+				}
+				case 1:
+				{
+					if (bAllChat)
+					{
+						if (!IsPlayerAlive(i) && GetClientTeam(iSender) == GetClientTeam(i))
+						{
+							PushArrayCell(hRecipients, i);
+						}
+					}
+					else
+					{
+						if (!IsPlayerAlive(i))
+						{
+							PushArrayCell(hRecipients, i);
+						}
+					}
+				}
+				case 2:
+				{
+					if (bAllChat)
+					{
+						if (GetClientTeam(iSender) == GetClientTeam(i))
+						{
+							PushArrayCell(hRecipients, i);
+						}
+					}
+					else
+					{
+						PushArrayCell(hRecipients, i);
+					}
+				}
+			}
 		}
 	}
 	
 	//Retrieve the default values for coloring and use these as a base for developers to change later.
-	bool bProcessColors = GetConVarBool(hConVars[2]);
-	bool bRemoveColors = GetConVarBool(hConVars[3]);
+	bool bProcessColors = GetConVarBool(convar_Default_ProcessColors);
+	bool bRemoveColors = GetConVarBool(convar_Default_RemoveColors);
 	
 	//We need to make copy of these strings for checks after the pre-forward has fired.
 	char sNameCopy[MAXLENGTH_NAME];
 	strcopy(sNameCopy, sizeof(sNameCopy), sName);
+	
+	char sMessageCopy[MAXLENGTH_MESSAGE];
+	strcopy(sMessageCopy, sizeof(sMessageCopy), sMessage);
 
 	char sFlagCopy[MAXLENGTH_FLAG];
 	strcopy(sFlagCopy, sizeof(sFlagCopy), sFlag);
@@ -254,6 +333,11 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 	if (StrEqual(sNameCopy, sName))
 	{
 		Format(sName, sizeof(sName), "\x03%s", sName);
+	}
+	
+	if (StrEqual(sMessageCopy, sMessage))
+	{
+		Format(sMessage, sizeof(sMessage), "\x01%s", sMessage);
 	}
 	
 	Handle hPack = CreateDataPack();
@@ -309,7 +393,7 @@ public void Frame_OnChatMessage_SayText2(any data)
 	//Make sure that the text is default for the message if no colors are present.
 	if (iResults != Plugin_Changed && !bProcessColors || bRemoveColors)
 	{
-		Format(sMessage, sizeof(sMessage), "{default}%s", sMessage);
+		Format(sMessage, sizeof(sMessage), "\x03%s", sMessage);
 	}
 	
 	//Replace the specific characters for the name and message strings.
@@ -609,4 +693,9 @@ public int Native_GetFlagFormatString(Handle plugin, int numParams)
 	GetTrieString(hTrie_MessageFormats, sFlag, sFormat, sizeof(sFormat));
 
 	SetNativeString(2, sFormat, GetNativeCell(3));
+}
+
+stock void RemoveFrontString(char[] strInput, int iSize, int iVar)
+{
+	strcopy(strInput, iSize, strInput[iVar]);
 }
