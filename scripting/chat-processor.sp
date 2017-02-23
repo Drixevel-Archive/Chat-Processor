@@ -8,7 +8,7 @@
 #define PLUGIN_NAME "Chat-Processor"
 #define PLUGIN_AUTHOR "Keith Warren (Drixevel)"
 #define PLUGIN_DESCRIPTION "Replacement for Simple Chat Processor."
-#define PLUGIN_VERSION "2.0.5"
+#define PLUGIN_VERSION "2.0.6"
 #define PLUGIN_CONTACT "http://www.drixevel.com/"
 
 ////////////////////
@@ -409,29 +409,32 @@ public void Frame_OnChatMessage_SayText2(any data)
 		CProcessVariables(sBuffer, sizeof(sBuffer), bRemoveColors);
 	}
 	
-	//Send the message to clients.
-	if (bProto)
+	if (iResults != Plugin_Stop)
 	{
-		for (int i = 0; i < GetArraySize(hRecipients); i++)
+		//Send the message to clients.
+		if (bProto)
 		{
-			int client = GetArrayCell(hRecipients, i);
-
-			if (IsClientInGame(client))
+			for (int i = 0; i < GetArraySize(hRecipients); i++)
 			{
-				CSayText2(client, sBuffer, iSender, bChat);
+				int client = GetArrayCell(hRecipients, i);
+
+				if (IsClientInGame(client))
+				{
+					CSayText2(client, sBuffer, iSender, bChat);
+				}
 			}
 		}
-	}
-	else
-	{
-		for (int i = 0; i < GetArraySize(hRecipients); i++)
+		else
 		{
-			int client = GetArrayCell(hRecipients, i);
-
-			if (IsClientInGame(client))
+			for (int i = 0; i < GetArraySize(hRecipients); i++)
 			{
-				CSetNextAuthor(iSender);
-				CPrintToChat(client, sBuffer);
+				int client = GetArrayCell(hRecipients, i);
+
+				if (IsClientInGame(client))
+				{
+					CSetNextAuthor(iSender);
+					CPrintToChat(client, sBuffer);
+				}
 			}
 		}
 	}
