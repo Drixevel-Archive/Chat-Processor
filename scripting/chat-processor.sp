@@ -8,7 +8,7 @@
 #define PLUGIN_NAME "Chat-Processor"
 #define PLUGIN_AUTHOR "Keith Warren (Drixevel)"
 #define PLUGIN_DESCRIPTION "Replacement for Simple Chat Processor."
-#define PLUGIN_VERSION "2.0.6"
+#define PLUGIN_VERSION "2.0.7"
 #define PLUGIN_CONTACT "http://www.drixevel.com/"
 
 ////////////////////
@@ -24,6 +24,9 @@ ConVar convar_Config;
 ConVar convar_Default_ProcessColors;
 ConVar convar_Default_RemoveColors;
 ConVar convar_StripColors;
+ConVar convar_DeadChat;
+
+EngineVersion engine;
 
 Handle hForward_OnChatMessage;
 Handle hForward_OnChatMessagePost;
@@ -55,7 +58,8 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 	hForward_OnChatMessage = CreateGlobalForward("CP_OnChatMessage", ET_Hook, Param_CellByRef, Param_Cell, Param_String, Param_String, Param_String, Param_CellByRef, Param_CellByRef);
 	hForward_OnChatMessagePost = CreateGlobalForward("CP_OnChatMessagePost", ET_Ignore, Param_Cell, Param_Cell, Param_String, Param_String, Param_String, Param_String, Param_Cell, Param_Cell);
-
+	
+	engine = GetEngineVersion();
 	return APLRes_Success;
 }
 
@@ -73,6 +77,7 @@ public void OnPluginStart()
 	convar_Default_ProcessColors = CreateConVar("sm_chatprocessor_process_colors_default", "1", "Default setting to give forwards to process colors.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	convar_Default_RemoveColors = CreateConVar("sm_chatprocessor_remove_colors_default", "0", "Default setting to give forwards to remove colors.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	convar_StripColors = CreateConVar("sm_chatprocessor_strip_colors", "1", "Remove color tags from the name and the message before processing the output.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+	convar_DeadChat = CreateConVar("sm_chatprocessor_deadchat", "0", "Controls how dead communicate.\n0 - Off. 1 - Dead players ignore teams. 2 - Dead players talk to living teammates.", FCVAR_NOTIFY, true, 0.0, true, 2.0);
 
 	AddCommandListener(Command_Say, "say");
 	AddCommandListener(Command_Say, "say_team");
@@ -211,7 +216,31 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 	Handle hRecipients = CreateArray();
 	
 	bool bAllChat = StrContains(sFlag, "_All") != -1;
-	int iDeadTalk = GetConVarInt(FindConVar("sm_deadtalk"));
+	ConVar convar_DeadTalk;
+	int iDeadTalk;
+	
+	if (engine == Engine_CSGO)
+	{
+		convar_DeadTalk = FindConVar("sv_deadtalk");
+		
+		if (convar_DeadTalk != null)
+		{
+			iDeadTalk = GetConVarInt(convar_DeadTalk);
+		}
+	}
+	else if (LibraryExists("basecomm"))
+	{
+		convar_DeadTalk = FindConVar("sm_deadtalk");
+		
+		if (convar_DeadTalk != null)
+		{
+			iDeadTalk = GetConVarInt(convar_DeadTalk);
+		}
+	}
+	else
+	{
+		iDeadTalk = GetConVarInt(convar_DeadChat);
+	}
 
 	for (int i = 1; i < MaxClients; i++)
 	{
