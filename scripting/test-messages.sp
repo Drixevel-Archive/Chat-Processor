@@ -27,9 +27,9 @@ public Action CP_OnChatMessage(int& author, ArrayList recipients, char[] flagstr
 	{
 		return Plugin_Continue;
 	}
-	
+
 	Format(name, MAXLENGTH_NAME, "[Test] {red}%s", name);
 	Format(message, MAXLENGTH_MESSAGE, "{green}%s", message);
-	
+
 	return Plugin_Changed;
 }

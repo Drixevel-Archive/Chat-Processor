@@ -8,7 +8,7 @@
 #define PLUGIN_NAME "Chat-Processor"
 #define PLUGIN_AUTHOR "Keith Warren (Drixevel)"
 #define PLUGIN_DESCRIPTION "Replacement for Simple Chat Processor."
-#define PLUGIN_VERSION "2.0.7"
+#define PLUGIN_VERSION "2.0.8"
 #define PLUGIN_CONTACT "http://www.drixevel.com/"
 
 ////////////////////
@@ -58,7 +58,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 	hForward_OnChatMessage = CreateGlobalForward("CP_OnChatMessage", ET_Hook, Param_CellByRef, Param_Cell, Param_String, Param_String, Param_String, Param_CellByRef, Param_CellByRef);
 	hForward_OnChatMessagePost = CreateGlobalForward("CP_OnChatMessagePost", ET_Ignore, Param_Cell, Param_Cell, Param_String, Param_String, Param_String, Param_String, Param_Cell, Param_Cell);
-	
+
 	engine = GetEngineVersion();
 	return APLRes_Success;
 }
@@ -92,7 +92,7 @@ public void OnPluginStart()
 public void OnConfigsExecuted()
 {
 	bHooked = false;
-	
+
 	if (!GetConVarBool(convar_Status))
 	{
 		return;
@@ -114,7 +114,7 @@ public void OnConfigsExecuted()
 		HookUserMessage(SayText2, OnSayText2, true);
 		bHooked = true;
 	}
-	
+
 	if (!bHooked)
 	{
 		UserMsg SayText = GetUserMessageId("SayText");
@@ -151,14 +151,14 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 	{
 		return Plugin_Continue;
 	}
-	
+
 	//Retrieve the client sending the message to other clients.
 	int iSender = bProto ? PbReadInt(msg, "ent_idx") : BfReadByte(msg);
 	if (iSender <= 0)
 	{
 		return Plugin_Continue;
 	}
-		
+
 	//Stops double messages in-general.
 	if (bNewMsg[iSender])
 	{
@@ -168,10 +168,10 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 	{
 		return Plugin_Stop;
 	}
-	
+
 	//Chat Type
 	bool bChat = bProto ? PbReadBool(msg, "chat") : view_as<bool>(BfReadByte(msg));
-	
+
 	//Retrieve the name of template name to use when getting the format.
 	char sFlag[MAXLENGTH_FLAG];
 	switch (bProto)
@@ -179,14 +179,14 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 		case true: PbReadString(msg, "msg_name", sFlag, sizeof(sFlag));
 		case false: BfReadString(msg, sFlag, sizeof(sFlag));
 	}
-	
+
 	//Retrieve the format template based on the flag name above we retrieved.
 	char sFormat[MAXLENGTH_BUFFER];
 	if (!GetTrieString(hTrie_MessageFormats, sFlag, sFormat, sizeof(sFormat)))
 	{
 		return Plugin_Continue;
 	}
-	
+
 	//Get the name string of the client.
 	char sName[MAXLENGTH_NAME];
 	switch (bProto)
@@ -194,7 +194,7 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 		case true: PbReadString(msg, "params", sName, sizeof(sName), 0);
 		case false: if (BfGetNumBytesLeft(msg)) BfReadString(msg, sName, sizeof(sName));
 	}
-	
+
 	//Get the message string that the client is wanting to send.
 	char sMessage[MAXLENGTH_MESSAGE];
 	switch (bProto)
@@ -202,7 +202,7 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 		case true: PbReadString(msg, "params", sMessage, sizeof(sMessage), 1);
 		case false: if (BfGetNumBytesLeft(msg)) BfReadString(msg, sMessage, sizeof(sMessage));
 	}
-	
+
 	//Clients have the ability to color their chat if they manually type in color tags, this allows server operators to choose if they want their players the ability to do so.
 	//Example: {red}This {white}is {green}a {blue}random {yellow}message.
 	//Goes for both the name and the message.
@@ -211,18 +211,18 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 		CRemoveColors(sName, sizeof(sName));
 		CRemoveColors(sMessage, sizeof(sMessage));
 	}
-	
+
 	//It's easier just to use a handle here for an array instead of passing 2 arguments through both forwards with static arrays.
 	Handle hRecipients = CreateArray();
-	
+
 	bool bAllChat = StrContains(sFlag, "_All") != -1;
 	ConVar convar_DeadTalk;
 	int iDeadTalk;
-	
+
 	if (engine == Engine_CSGO)
 	{
 		convar_DeadTalk = FindConVar("sv_deadtalk");
-		
+
 		if (convar_DeadTalk != null)
 		{
 			iDeadTalk = GetConVarInt(convar_DeadTalk);
@@ -231,7 +231,7 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 	else if (LibraryExists("basecomm"))
 	{
 		convar_DeadTalk = FindConVar("sm_deadtalk");
-		
+
 		if (convar_DeadTalk != null)
 		{
 			iDeadTalk = GetConVarInt(convar_DeadTalk);
@@ -248,7 +248,7 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 		{
 			continue;
 		}
-		
+
 		if (IsPlayerAlive(iSender))
 		{
 			if (bAllChat)
@@ -288,14 +288,14 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 				{
 					if (bAllChat)
 					{
-						if (!IsPlayerAlive(i) && GetClientTeam(iSender) == GetClientTeam(i))
+						if (!IsPlayerAlive(i))
 						{
 							PushArrayCell(hRecipients, i);
 						}
 					}
 					else
 					{
-						if (!IsPlayerAlive(i))
+						if (!IsPlayerAlive(i) && GetClientTeam(iSender) == GetClientTeam(i))
 						{
 							PushArrayCell(hRecipients, i);
 						}
@@ -305,34 +305,34 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 				{
 					if (bAllChat)
 					{
+						PushArrayCell(hRecipients, i);
+					}
+					else
+					{
 						if (GetClientTeam(iSender) == GetClientTeam(i))
 						{
 							PushArrayCell(hRecipients, i);
 						}
 					}
-					else
-					{
-						PushArrayCell(hRecipients, i);
-					}
 				}
 			}
 		}
 	}
-	
+
 	//Retrieve the default values for coloring and use these as a base for developers to change later.
 	bool bProcessColors = GetConVarBool(convar_Default_ProcessColors);
 	bool bRemoveColors = GetConVarBool(convar_Default_RemoveColors);
-	
+
 	//We need to make copy of these strings for checks after the pre-forward has fired.
 	char sNameCopy[MAXLENGTH_NAME];
 	strcopy(sNameCopy, sizeof(sNameCopy), sName);
-	
+
 	char sMessageCopy[MAXLENGTH_MESSAGE];
 	strcopy(sMessageCopy, sizeof(sMessageCopy), sMessage);
 
 	char sFlagCopy[MAXLENGTH_FLAG];
 	strcopy(sFlagCopy, sizeof(sFlagCopy), sFlag);
-	
+
 	//Fire the pre-forward. https://i.ytimg.com/vi/A2a0Ht01qA8/maxresdefault.jpg
 	Call_StartForward(hForward_OnChatMessage);
 	Call_PushCellRef(iSender);
@@ -346,7 +346,7 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 	//Retrieve the results here and use manage it.
 	Action iResults;
 	int error = Call_Finish(iResults);
-	
+
 	//We ran into a native error, gotta report it.
 	if (error != SP_ERROR_NONE)
 	{
@@ -354,24 +354,24 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 		ThrowNativeError(error, "Global Forward 'CP_OnChatMessage' has failed to fire. [Error code: %i]", error);
 		return Plugin_Continue;
 	}
-	
+
 	//Check if the flag string was changed after the pre-forward and if so, re-retrieve the format string.
 	if (!StrEqual(sFlag, sFlagCopy) && !GetTrieString(hTrie_MessageFormats, sFlag, sFormat, sizeof(sFormat)))
 	{
 		delete hRecipients;
 		return Plugin_Continue;
 	}
-	
+
 	if (StrEqual(sNameCopy, sName))
 	{
 		Format(sName, sizeof(sName), "\x03%s", sName);
 	}
-	
+
 	if (StrEqual(sMessageCopy, sMessage))
 	{
 		Format(sMessage, sizeof(sMessage), "\x01%s", sMessage);
 	}
-	
+
 	Handle hPack = CreateDataPack();
 	WritePackCell(hPack, iSender);
 	WritePackCell(hPack, hRecipients);
@@ -380,13 +380,13 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 	WritePackString(hPack, sFlag);
 	WritePackCell(hPack, bProcessColors);
 	WritePackCell(hPack, bRemoveColors);
-	
+
 	WritePackString(hPack, sFormat);
 	WritePackCell(hPack, bChat);
 	WritePackCell(hPack, iResults);
 
 	RequestFrame(Frame_OnChatMessage_SayText2, hPack);
-	
+
 	return Plugin_Stop;
 }
 
@@ -417,27 +417,27 @@ public void Frame_OnChatMessage_SayText2(any data)
 	Action iResults = ReadPackCell(data);
 
 	CloseHandle(data);
-	
+
 	//Make a copy of the format buffer and use that as the print so the format string stays the same.
 	char sBuffer[MAXLENGTH_BUFFER];
 	strcopy(sBuffer, sizeof(sBuffer), sFormat);
-	
+
 	//Make sure that the text is default for the message if no colors are present.
 	if (iResults != Plugin_Changed && !bProcessColors || bRemoveColors)
 	{
 		Format(sMessage, sizeof(sMessage), "\x03%s", sMessage);
 	}
-	
+
 	//Replace the specific characters for the name and message strings.
 	ReplaceString(sBuffer, sizeof(sBuffer), "{1}", sName);
 	ReplaceString(sBuffer, sizeof(sBuffer), "{2}", sMessage);
-	
+
 	//Process colors based on the final results we have.
 	if (iResults == Plugin_Changed && bProcessColors)
 	{
 		CProcessVariables(sBuffer, sizeof(sBuffer), bRemoveColors);
 	}
-	
+
 	if (iResults != Plugin_Stop)
 	{
 		//Send the message to clients.
@@ -467,7 +467,7 @@ public void Frame_OnChatMessage_SayText2(any data)
 			}
 		}
 	}
-	
+
 	//Finally... fire the post-forward after the message has been sent and processed. https://s-media-cache-ak0.pinimg.com/564x/a5/bb/3c/a5bb3c3e05089a40ef01ea082ac39e24.jpg
 	Call_StartForward(hForward_OnChatMessagePost);
 	Call_PushCell(iSender);
@@ -479,7 +479,7 @@ public void Frame_OnChatMessage_SayText2(any data)
 	Call_PushCell(bProcessColors);
 	Call_PushCell(bRemoveColors);
 	Call_Finish();
-	
+
 	//Close the recipients handle.
 	delete hRecipients;
 }
@@ -512,7 +512,7 @@ public Action OnSayText(UserMsg msg_id, BfRead msg, const int[] players, int pla
 	{
 		PushArrayCell(hRecipients, players[i]);
 	}
-	
+
 	if (FindValueInArray(hRecipients, iSender) == -1)
 	{
 		PushArrayCell(hRecipients, iSender);
@@ -593,7 +593,7 @@ public Action OnSayText(UserMsg msg_id, BfRead msg, const int[] players, int pla
 	WritePackString(hPack, sMessage);
 	WritePackCell(hPack, bProcessColors);
 	WritePackCell(hPack, bRemoveColors);
-	
+
 	WritePackString(hPack, sFormat);
 	//WritePackCell(hPack, bChat);
 	WritePackCell(hPack, iResults);
@@ -619,10 +619,10 @@ public void Frame_OnChatMessage_SayText(any data)
 
 	char sMessage[MAXLENGTH_MESSAGE];
 	ReadPackString(data, sMessage, sizeof(sMessage));
-	
+
 	bool bProcessColors = ReadPackCell(data);
 	bool bRemoveColors = ReadPackCell(data);
-	
+
 	char sFormat[MAXLENGTH_BUFFER];
 	ReadPackString(data, sFormat, sizeof(sFormat));
 
@@ -652,7 +652,7 @@ public void Frame_OnChatMessage_SayText(any data)
 	{
 		CProcessVariables(sBuffer, sizeof(sBuffer), bRemoveColors);
 	}
-	
+
 	if (iResults == Plugin_Changed)
 	{
 		for (int i = 0; i < GetArraySize(hRecipients); i++)
