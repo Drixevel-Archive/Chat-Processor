@@ -517,6 +517,11 @@ stock int TF2_CreateGlow(const char[] name, int target, int color[4] = {255, 255
 		DispatchKeyValue(glow, "GlowColor", sGlow);
 		DispatchSpawn(glow);
 
+		//SetVariantString("!activator");
+		//AcceptEntityInput(glow, "SetParent", target, glow, 0);
+
+		SetParent(target, glow);
+
 		AcceptEntityInput(glow, "Enable");
 	}
 
@@ -630,6 +635,29 @@ stock float[] GetConVarVector(Handle convar)
 	return vectors;
 }
 
+stock float[] GetConVar2DVector(Handle convar)
+{
+	float vectors[2] = {0.0, 0.0};
+
+	char sBuffer[128];
+	GetConVarString(convar, sBuffer, sizeof(sBuffer));
+
+	if (strlen(sBuffer) == 0)
+	{
+		return vectors;
+	}
+
+	char sPart[2][12];
+	int iReturned = ExplodeString(sBuffer, StrContains(sBuffer, ", ") != -1 ? ", " : " ", sPart, 2, 12);
+
+	for (int i = 0; i < iReturned; i++)
+	{
+		vectors[i] = StringToFloat(sPart[i]);
+	}
+
+	return vectors;
+}
+
 stock void FillArrayToValue(any[] array, int size, any value, int start = 0)
 {
 	if (start < 0)
@@ -688,37 +716,45 @@ public bool TraceEntityFilterPlayer(int entity, int contentsMask)
 	return entity > GetMaxClients() || !entity;
 }
 
-#define NO_ATTACH 0
-#define ATTACH_NORMAL 1
-#define ATTACH_HEAD 2
-
-stock int CreateParticle(const char[] particle, float time = 0.0, int parent = 0, int attach = NO_ATTACH, float xOffs = 0.0, float yOffs = 0.0, float zOffs = 0.0)
+stock int AttachParticle(int entity, const char[] particle, float time = 0.0, const char[] attach = "", float offsets[3] = {0.0, 0.0, 0.0})
 {
+	float vecPosition[3];
+	GetEntPropVector(entity, Prop_Send, "m_vecOrigin", vecPosition);
+
+	float vecAngles[3];
+	GetEntPropVector(entity, Prop_Send, "m_angRotation", vecAngles);
+
+	int entity_particle = CreateParticle(particle, time, vecPosition, vecAngles, offsets);
+
+	if (IsValidEntity(entity_particle))
+	{
+		TeleportEntity(entity_particle, vecPosition, vecAngles, NULL_VECTOR);
+
+		SetVariantString("!activator");
+		AcceptEntityInput(entity_particle, "SetParent", entity, entity_particle, 0);
+
+		if (strlen(attach) > 0)
+		{
+			SetVariantString(attach);
+			AcceptEntityInput(entity_particle, "SetParentAttachmentMaintainOffset", entity_particle, entity_particle, 0);
+		}
+	}
+
+	return entity_particle;
+}
+
+stock int CreateParticle(const char[] particle, float time = 0.0, float origin[3], float angles[3] = {0.0, 0.0, 0.0}, float offsets[3] = {0.0, 0.0, 0.0})
+{
+	origin[0] += offsets[0];
+	origin[1] += offsets[1];
+	origin[2] += offsets[2];
+
 	int entity = CreateEntityByName("info_particle_system");
 
 	if (IsValidEntity(entity))
 	{
-		float pos[3];
-		GetEntPropVector(parent, Prop_Send, "m_vecOrigin", pos);
-
-		pos[0] += xOffs;
-		pos[1] += yOffs;
-		pos[2] += zOffs;
-
-		TeleportEntity(entity, pos, NULL_VECTOR, NULL_VECTOR);
+		DispatchKeyValueVector(entity, "origin", origin);
 		DispatchKeyValue(entity, "effect_name", particle);
-
-		if (attach != NO_ATTACH)
-		{
-			SetVariantString("!activator");
-			AcceptEntityInput(entity, "SetParent", parent, entity, 0);
-
-			if (attach == ATTACH_HEAD)
-			{
-				SetVariantString("head");
-				AcceptEntityInput(entity, "SetParentAttachmentMaintainOffset", entity, entity, 0);
-			}
-		}
 
 		DispatchSpawn(entity);
 		ActivateEntity(entity);
@@ -726,61 +762,39 @@ stock int CreateParticle(const char[] particle, float time = 0.0, int parent = 0
 
 		if (time > 0.0)
 		{
-			CreateTimer(time, DeleteParticle, EntIndexToEntRef(entity));
+			SetEntitySelfDestruct(entity, time);
 		}
 	}
 
 	return entity;
 }
 
-public Action DeleteParticle(Handle timer, any data)
+stock void CreateTempParticle(char[] particle, float origin[3], float angles[3] = {0.0, 0.0, 0.0})
 {
-	int entity = EntRefToEntIndex(data);
+	int tblidx = FindStringTable("ParticleEffectNames");
 
-	if (entity > 0 && IsValidEntity(entity))
+	char tmp[256];
+	int stridx = INVALID_STRING_INDEX;
+
+	for (int i = 0; i < GetStringTableNumStrings(tblidx); i++)
 	{
-		char classname[64];
-		GetEntityClassname(entity, classname, sizeof(classname));
-
-		if (StrEqual(classname, "info_particle_system"))
+		ReadStringTable(tblidx, i, tmp, sizeof(tmp));
+		if(StrEqual(tmp, particle, false))
 		{
-			AcceptEntityInput(entity, "Kill");
-		}
-	}
-}
-
-stock void AttachParticleToClient(int client, const char[] particle, const char[] attachment, float life = 0.0, float vOffsets[3] = {0.0, 0.0, 0.0})
-{
-	float vecPosition[3];
-	GetClientAbsOrigin(client, vecPosition);
-
-	int entity = CreateEntityParticle(particle, vecPosition, life);
-
-	if (IsValidEntity(entity))
-	{
-		SetParent(client, entity, attachment, vOffsets);
-	}
-}
-
-stock int CreateEntityParticle(const char[] sParticle, const float[3] pos, float life = 0.0)
-{
-	int entity = CreateEntityByName("info_particle_system");
-
-	if (IsValidEntity(entity))
-	{
-		TeleportEntity(entity, pos, NULL_VECTOR, NULL_VECTOR);
-		DispatchKeyValue(entity, "effect_name", sParticle);
-		DispatchSpawn(entity);
-		ActivateEntity(entity);
-		AcceptEntityInput(entity, "start");
-
-		if (life > 0.0)
-		{
-			SetEntitySelfDestruct(entity, life);
+			stridx = i;
+			break;
 		}
 	}
 
-	return entity;
+	TE_Start("TFParticleEffect");
+	TE_WriteFloat("m_vecOrigin[0]", origin[0]);
+	TE_WriteFloat("m_vecOrigin[1]", origin[1]);
+	TE_WriteFloat("m_vecOrigin[2]", origin[2]);
+	TE_WriteVector("m_vecAngles", angles);
+	TE_WriteNum("m_iParticleSystemIndex", stridx);
+	TE_WriteNum("entindex", -1);
+	TE_WriteNum("m_iAttachType", 5);
+	TE_SendToAll();
 }
 
 stock void SetEntitySelfDestruct(int entity, float fDuration)
@@ -803,9 +817,11 @@ stock void SetParent(int iParented, int iChild, const char[] szAttachment = "", 
 
 		if (AreVectorsEqual(vOffsets, view_as<float>({0.0, 0.0, 0.0}))) // NULL_VECTOR
 		{
-			decl Float:vPos[3];
+			float vPos[3];
 			GetEntPropVector(iParented, Prop_Send, "m_vecOrigin", vPos);
+
 			AddVectors(vPos, vOffsets, vPos);
+
 			TeleportEntity(iChild, vPos, NULL_VECTOR, NULL_VECTOR);
 			AcceptEntityInput(iChild, "SetParentAttachmentMaintainOffset", iParented, iChild);
 		}
@@ -814,6 +830,11 @@ stock void SetParent(int iParented, int iChild, const char[] szAttachment = "", 
 			AcceptEntityInput(iChild, "SetParentAttachment", iParented, iChild);
 		}
 	}
+}
+
+stock bool AreVectorsEqual(const float vec1[3], const float vec2[3])
+{
+	return vec1[0] == vec2[0] && vec1[1] == vec2[1] && vec1[2] == vec2[2];
 }
 
 stock void GetServerIP(char[] sIP, int size, bool show_port = false)
@@ -834,7 +855,12 @@ stock void GetServerIP(char[] sIP, int size, bool show_port = false)
 	}
 }
 
-stock void TF2_GetClassName(TFClassType class, char[] name, int size, bool capitalize)
+stock void TF2_GetClientClassName(int client, char[] name, int size, bool capitalize = false)
+{
+	TF2_GetClassName(TF2_GetPlayerClass(client), name, size, capitalize);
+}
+
+stock void TF2_GetClassName(TFClassType class, char[] name, int size, bool capitalize = false)
 {
 	switch (class)
 	{
@@ -887,9 +913,9 @@ stock void SetPlayerWeaponAmmo(int client, int weapon, int clip = -1, int ammo =
 
 stock int GetClip(int weapon)
 {
-	if (!IsValidEntity(weapon))
+	if (!IsValidEntity(weapon) || !HasEntProp(weapon, Prop_Data, "m_iClip1"))
 	{
-		return 0;
+		return -1;
 	}
 
 	return GetEntProp(weapon, Prop_Data, "m_iClip1");
@@ -897,7 +923,7 @@ stock int GetClip(int weapon)
 
 stock void SetClip(int weapon, int clip)
 {
-	if (!IsValidEntity(weapon))
+	if (!IsValidEntity(weapon) || !HasEntProp(weapon, Prop_Data, "m_iClip1"))
 	{
 		return;
 	}
@@ -907,9 +933,9 @@ stock void SetClip(int weapon, int clip)
 
 stock int GetAmmo(int client, int weapon)
 {
-	if (client == 0 || client > MaxClients || !IsValidEntity(weapon))
+	if (client == 0 || client > MaxClients || !IsValidEntity(weapon) || !HasEntProp(weapon, Prop_Send, "m_iPrimaryAmmoType"))
 	{
-		return 0;
+		return -1;
 	}
 
 	int iOffset = GetEntProp(weapon, Prop_Send, "m_iPrimaryAmmoType", 1) * 4;
@@ -919,7 +945,7 @@ stock int GetAmmo(int client, int weapon)
 
 stock void SetAmmo(int client, int weapon, int ammo)
 {
-	if (client == 0 || client > MaxClients || !IsValidEntity(weapon))
+	if (client == 0 || client > MaxClients || !IsValidEntity(weapon) || !HasEntProp(weapon, Prop_Send, "m_iPrimaryAmmoType"))
 	{
 		return;
 	}
@@ -927,189 +953,6 @@ stock void SetAmmo(int client, int weapon, int ammo)
 	int iOffset = GetEntProp(weapon, Prop_Send, "m_iPrimaryAmmoType", 1) * 4;
 	int iAmmoTable = FindSendPropInfo("CTFPlayer", "m_iAmmo");
 	SetEntData(client, iAmmoTable + iOffset, ammo, 4, true);
-}
-
-//#Kisslick
-stock void AutoExecConfigAppend( const char[] name = "", const char[] folder = "sourcemod", char AppendNote[ 512 ] = "", bool AlwaysAppend = false )
-{
-	char CommandOutPut[ 4096 ];
-	char PluginFileName[ 256 ];
-	char PluginVersion[ 16 ];
-	char ConfigName[ PLATFORM_MAX_PATH ];
-	Handle FileHandle = INVALID_HANDLE;
-	char FileLine[ 256 ];
-	GetPluginFilename( INVALID_HANDLE , PluginFileName, sizeof( PluginFileName ) );
-	GetPluginInfo( INVALID_HANDLE, PlInfo_Version, PluginVersion, sizeof( PluginVersion ) );
-
-	strcopy( ConfigName, FindCharInString( PluginFileName, '.' ) + 1, PluginFileName );
-	if( strlen( name ) == 0 )
-	{
-		Format( ConfigName, sizeof( ConfigName ), "plugin.%s", ConfigName );
-	}
-	else
-	{
-		strcopy( ConfigName, sizeof( ConfigName ), name );
-	}
-
-	AutoExecConfig( false, ConfigName, folder );
-
-	// Build path
-	Format( ConfigName, sizeof( ConfigName ), "cfg/%s/%s.cfg", folder, ConfigName );
-
-	// Check plugin version
-	bool VersionAlreadyAppended = false;
-	FileHandle = OpenFile( ConfigName, "r" );
-	if( FileHandle != INVALID_HANDLE )
-	{
-		while( !IsEndOfFile( FileHandle ) && ReadFileLine( FileHandle, FileLine, sizeof( FileLine ) ) )
-		{
-			TrimString( FileLine );
-
-			if( strlen( FileLine ) == 0 )
-				continue;
-
-			if( FileLine[ 0 ] != '/' || FileLine[ 1 ] != '/' )
-				continue;
-
-			if( ReplaceStringEx( FileLine, sizeof( FileLine ), "// @version:", "" ) != -1 )
-			{
-				TrimString( FileLine );
-
-				if( StrEqual( FileLine, PluginVersion ) )
-					VersionAlreadyAppended = true;
-			}
-		}
-		CloseHandle( FileHandle );
-	}
-
-	if( VersionAlreadyAppended && !AlwaysAppend )
-		return;
-
-	// Append info about new version
-	if( !VersionAlreadyAppended )
-	{
-		FileHandle = OpenFile( ConfigName, "a" );
-		WriteFileLine( FileHandle, "// Append new ConVars for plugin %s", PluginFileName );
-		WriteFileLine( FileHandle, "// @version: %s", PluginVersion );
-		if( strlen( AppendNote ) != 0 )
-		{
-			ReplaceString( AppendNote, sizeof( AppendNote ), "\n", "\n// " );
-			WriteFileLine( FileHandle, "// @note: %s", AppendNote );
-		}
-		WriteFileLine( FileHandle, "" );
-		LogMessage( "ConVars appended to file \"%s\" (version: \"%s\")", ConfigName, PluginVersion );
-		CloseHandle( FileHandle );
-	}
-
-	// Load ConVar list
-	ServerCommandEx( CommandOutPut, sizeof( CommandOutPut ), "sm cvars %s", PluginFileName );
-	strcopy( CommandOutPut, sizeof( CommandOutPut ), CommandOutPut[  FindCharInString( CommandOutPut, '\n' ) + 1 ] );
-	strcopy( CommandOutPut, sizeof( CommandOutPut ), CommandOutPut[  FindCharInString( CommandOutPut, '\n' ) + 1 ] );
-	TrimString( CommandOutPut );
-
-	char cvar[ 256 ];
-	Handle ConVarsList = INVALID_HANDLE;
-	int index = SplitString( CommandOutPut, " ", cvar, sizeof( cvar ) );
-	ConVarsList = CreateArray( 256 );
-
-	while( index != -1 )
-	{
-		PushArrayString( ConVarsList, cvar );
-
-		if( FindCharInString( CommandOutPut, '\n' ) + 1 == EOS )
-			break;
-
-		strcopy( CommandOutPut, sizeof( CommandOutPut ), CommandOutPut[ FindCharInString( CommandOutPut, '\n' ) + 1 ] );
-		TrimString( CommandOutPut );
-		index = SplitString( CommandOutPut, " ", cvar, sizeof( cvar ) );
-	}
-
-	// Filter ConVars
-	FileHandle = OpenFile( ConfigName, "r" );
-	if( FileHandle != INVALID_HANDLE )
-	{
-		while( !IsEndOfFile( FileHandle ) && ReadFileLine( FileHandle, FileLine, sizeof( FileLine ) ) )
-		{
-			TrimString( FileLine );
-
-			if( FileLine[ 0 ] == '/' && FileLine[ 1 ] == '/' )
-				continue;
-
-			if( strlen( FileLine ) == 0 )
-				continue;
-
-			index = SplitString( FileLine, " ", cvar, sizeof( cvar ) );
-
-			if( index != -1 )
-			{
-				index = FindStringInArray( ConVarsList, cvar );
-				if( index != -1 )
-				{
-					RemoveFromArray( ConVarsList, index );
-				}
-			}
-		}
-		CloseHandle( FileHandle );
-	}
-
-
-	if( GetArraySize( ConVarsList ) < 1 )
-		return;
-
-	// Append new ConVars
-	Handle ConVarHandle = INVALID_HANDLE;
-	Handle ConVarIterator = INVALID_HANDLE;
-	float ConVarBound;
-	char ConVarDescription[ 512 ];
-	char ConVarDefault[ 256 ];
-	char ConVarValue[ 256 ];
-	char Name[64];
-	int flags; bool isCommand;
-
-	FileHandle = OpenFile( ConfigName, "a" );
-	for( int i = 0; i < GetArraySize( ConVarsList ); i++ )
-	{
-		GetArrayString( ConVarsList, i, cvar, sizeof( cvar ) );
-
-		ConVarHandle = FindConVar( cvar );
-
-		if( ConVarHandle == INVALID_HANDLE )
-			continue;
-
-		ConVarIterator = FindFirstConCommand( Name, sizeof( Name ), isCommand, flags, ConVarDescription, sizeof( ConVarDescription ) );
-		if( ConVarIterator == INVALID_HANDLE )
-			continue;
-
-		do
-		{
-			if( isCommand || !StrEqual( Name, cvar ) )
-				continue;
-
-			break;
-		}while( FindNextConCommand( ConVarIterator, Name, sizeof( Name ), isCommand, flags, ConVarDescription, sizeof( ConVarDescription ) ) );
-		CloseHandle( ConVarIterator );
-
-		ReplaceString( ConVarDescription, sizeof( ConVarDescription ), "\n", "\n// " );
-		WriteFileLine( FileHandle, "// %s", ConVarDescription );
-		WriteFileLine( FileHandle, "// -" );
-
-		GetConVarDefault( ConVarHandle, ConVarDefault, sizeof( ConVarDefault ) );
-		WriteFileLine( FileHandle, "// Default: \"%s\"", ConVarDefault );
-
-		if( GetConVarBounds( ConVarHandle, ConVarBound_Lower, ConVarBound ) )
-			WriteFileLine( FileHandle, "// Minimum: \"%f\"", ConVarBound );
-
-		if( GetConVarBounds( ConVarHandle, ConVarBound_Upper, ConVarBound ) )
-			WriteFileLine( FileHandle, "// Maximum: \"%f\"", ConVarBound );
-
-		GetConVarString( ConVarHandle, ConVarValue, sizeof( ConVarValue ) );
-		WriteFileLine( FileHandle, "%s \"%s\"", cvar, ConVarValue );
-		WriteFileLine( FileHandle, "" );
-
-	}
-
-	CloseHandle( ConVarsList );
-	CloseHandle( FileHandle );
 }
 
 stock void KillTimerSafe(Handle& timer)
@@ -1124,4 +967,171 @@ stock void KillTimerSafe(Handle& timer)
 stock int GetActiveWeapon(int client)
 {
 	return GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
+}
+
+stock int GetRandomClient(bool ingame = true, bool alive = false, bool nofake = false, int team = 0)
+{
+	int[] clients = new int[MaxClients];
+	int amount;
+
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (ingame && !IsClientInGame(i) || alive && !IsPlayerAlive(i) || nofake && IsFakeClient(i) || team > 0 && team != GetClientTeam(i))
+		{
+			continue;
+		}
+
+		clients[amount++] = i;
+	}
+
+	return clients[GetRandomInt(1, amount)];
+}
+
+
+stock void SQL_VoidQuery(Handle& database, const char[] query, DBPriority prio = DBPrio_Normal)
+{
+	if (database == null || strlen(query) == 0)
+	{
+		return;
+	}
+
+	Handle pack = CreateDataPack();
+	WritePackString(pack, query);
+
+	SQL_TQuery(database, TQuery_Void, query, pack, prio);
+}
+
+public void TQuery_Void(Handle owner, Handle hndl, const char[] error, any data)
+{
+	if (hndl == null)
+	{
+		ResetPack(data);
+
+		char sQuery[MAX_QUERY_LENGTH];
+		ReadPackString(data, sQuery, sizeof(sQuery));
+
+		LogError("Error executing void query: %s", error);
+		LogError("Query Output: %s", sQuery);
+	}
+
+	CloseHandle(data);
+}
+
+stock int TF2_GetPlayerMaxHealth(int client)
+{
+	return GetEntProp(GetPlayerResourceEntity(), Prop_Send, "m_iMaxHealth", _, client);
+}
+
+stock float[] GetClientAbsPosition(int client)
+{
+	float target_point[3];
+	GetClientAbsOrigin(client, target_point);
+
+	float target_velocity[3];
+	GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", target_velocity);
+
+	float correct = 0.0;
+
+	correct += GetClientLatency(client, NetFlow_Outgoing);	// * 2
+
+	int lerpTicks = RoundToFloor(0.5 + GetEntPropFloat(client, Prop_Send, "m_fLerpTime") / GetTickInterval());
+
+	correct += (GetTickInterval() * lerpTicks);
+
+	float sv_unlag = FindConVar("sv_maxunlag").FloatValue;
+	correct = (correct > sv_unlag ? sv_unlag : (correct < 0.0 ? 0.0 : correct));
+
+	int targettick = GetEntProp(client, Prop_Send, "m_nSimulationTick") - lerpTicks;	//m_nTickBase
+
+	float deltaTime = correct - (GetTickInterval() * (GetGameTickCount() - targettick));
+
+	if (FloatAbs(deltaTime) > 0.2)
+	{
+		targettick = GetGameTickCount() - (RoundToFloor(0.5 + correct / GetTickInterval()));
+	}
+
+	ScaleVector(target_velocity, correct);
+	SubtractVectors(target_point, target_velocity, target_point);
+
+	return target_point;
+}
+
+stock int GetClientActiveSlot(int client)
+{
+	return GetWeaponEntitySlot(client, GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon"));
+}
+
+stock int GetWeaponEntitySlot(int client, int weapon)
+{
+	if (client == 0 || client > MaxClients || !IsClientInGame(client) || !IsPlayerAlive(client) || !IsValidEntity(weapon))
+	{
+		return -1;
+	}
+
+	for (int i = 0; i < 5; i++)
+	{
+		if (GetPlayerWeaponSlot(client, i) == weapon)
+		{
+			return i;
+		}
+	}
+
+	return -1;
+}
+
+stock void ShowSyncHudTextAll(Handle& sync, const char[] format, any ...)
+{
+	if (sync == null || strlen(format) == 0)
+	{
+		return;
+	}
+
+	char buffer[255];
+	VFormat(buffer, sizeof(buffer), format, 3);
+
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (IsClientInGame(i) && !IsFakeClient(i))
+		{
+			ShowSyncHudText(i, sync, buffer);
+		}
+	}
+}
+
+stock void ShowHudTextAll(int channel, const char[] format, any ...)
+{
+	if (channel <= 0 || channel > 6 || strlen(format) == 0)
+	{
+		return;
+	}
+
+	char buffer[255];
+	VFormat(buffer, sizeof(buffer), format, 3);
+
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (IsClientInGame(i) && !IsFakeClient(i))
+		{
+			ShowHudText(i, channel, buffer);
+		}
+	}
+}
+
+stock void ClearSyncHudAll(Handle& sync)
+{
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (IsClientInGame(i) && !IsFakeClient(i))
+		{
+			ClearSyncHud(i, sync);
+		}
+	}
+}
+
+stock void ChangeClientTeam_Alive(int client, int team)
+{
+	int EntProp = GetEntProp(client, Prop_Send, "m_lifeState");
+	SetEntProp(client, Prop_Send, "m_lifeState", 2);
+	ChangeClientTeam(client, team);
+	SetEntProp(client, Prop_Send, "m_lifeState", EntProp);
 }
