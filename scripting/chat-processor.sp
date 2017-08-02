@@ -385,6 +385,7 @@ public void Frame_OnChatMessage_SayText2(any data)
 	//Replace the specific characters for the name and message strings.
 	ReplaceString(sBuffer, sizeof(sBuffer), "{1}", sName);
 	ReplaceString(sBuffer, sizeof(sBuffer), "{2}", sMessage);
+	ReplaceString(sBuffer, sizeof(sBuffer), "{3}", "\x01");
 
 	//Process colors based on the final results we have.
 	if (iResults == Plugin_Changed && bProcessColors)
