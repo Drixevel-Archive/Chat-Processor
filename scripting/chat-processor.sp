@@ -79,7 +79,7 @@ public void OnPluginStart()
 	convar_StripColors = CreateConVar("sm_chatprocessor_strip_colors", "1", "Remove color tags from the name and the message before processing the output.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	convar_DeadChat = CreateConVar("sm_chatprocessor_deadchat", "0", "Controls how dead communicate.\n0 - Off. 1 - Dead players talk to living teammates.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	AutoExecConfig();
-	
+
 	AddCommandListener(Command_Say, "say");
 	AddCommandListener(Command_Say, "say_team");
 
@@ -240,7 +240,7 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 	{
 		iDeadTalk = GetConVarInt(convar_DeadChat);
 	}
-	
+
 	int team = GetClientTeam(iSender);
 
 	for (int i = 1; i < MaxClients; i++)
@@ -249,14 +249,14 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 		{
 			continue;
 		}
-		
+
 		if (IsPlayerAlive(iSender))
 		{
 			if (!bAllChat && team != GetClientTeam(i))
 			{
 				continue;
 			}
-			
+
 			if (iDeadTalk == 0 && !IsPlayerAlive(i))
 			{
 				continue;
@@ -269,7 +269,7 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 				continue;
 			}
 		}
-		
+
 		PushArrayCell(hRecipients, i);
 	}
 
@@ -391,7 +391,7 @@ public void Frame_OnChatMessage_SayText2(any data)
 	if (iResults == Plugin_Changed && bProcessColors)
 	{
 		CProcessVariables(sBuffer, sizeof(sBuffer), bRemoveColors);
-		
+
 		//CSGO quirk where the 1st color in the line won't work..
 		if (engine == Engine_CSGO)
 		{
