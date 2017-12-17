@@ -491,7 +491,7 @@ public Action OnSayText(UserMsg msg_id, BfRead msg, const int[] players, int pla
 	GetClientName(iSender, sName, sizeof(sName));
 
 	char sBuffer[MAXLENGTH_BUFFER];
-	Format(sBuffer, sizeof(sBuffer), "%s", sName);
+	Format(sBuffer, sizeof(sBuffer), "%s:", sName);
 
 	int iPos = StrContains(sMessage, sBuffer);
 
@@ -615,7 +615,7 @@ public void Frame_OnChatMessage_SayText(any data)
 	ReplaceString(sMessage, sizeof(sMessage), "\x03", sColor);
 
 	char sBuffer[MAXLENGTH_MESSAGE];
-	Format(sBuffer, sizeof(sBuffer), "\x01%s%s\x01 %s", sFlag, sName, sMessage);
+	Format(sBuffer, sizeof(sBuffer), "\x01%s%s\x01: %s", sFlag, sName, sMessage);
 
 	if (bProcessColors)
 	{
