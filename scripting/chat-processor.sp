@@ -386,26 +386,21 @@ public void Frame_OnChatMessage_SayText2(any data)
 		return;
 	}
 	
-	//Make a copy of the format buffer and use that as the print so the format string stays the same.
-	char sBuffer[MAXLENGTH_BUFFER];
-	strcopy(sBuffer, sizeof(sBuffer), sFormat);
-
+	// CSGO has an issue with adding team colour dots to messages, we have to workaround it.
+	// Unfortunately the colour will be slightly different.
+	// If anyone knows a better way to do this feel free to open a PR.
+	bool bWorkAround = engine == Engine_CSGO && convar_CSGO5v5.BoolValue;
+	
 	//Make sure that the text is default for the message if no colors are present.
 	if (iResults != Plugin_Changed && (!bProcessColors || bRemoveColors))
 	{
 		Format(sMessage, sizeof(sMessage), "\x03%s", sMessage);
 	}
 	
-	// CSGO has an issue with adding team colour dots to messages, we have to workaround it.
-	// Unfortunately the colour will be slightly different.
-	// If anyone knows a better way to do this feel free to open a PR.
+	char szColor[6]; szColor = "\x03";
 	
-	bool bWorkAround = false;
-	
-	if (engine == Engine_CSGO && convar_CSGO5v5.BoolValue) 
+	if (bWorkAround) 
 	{
-		char szColor[6];
-		
 		switch (GetClientTeam(iSender))
 		{
 			case 0, 1:szColor = "\x0E"; // Purple.
@@ -415,9 +410,13 @@ public void Frame_OnChatMessage_SayText2(any data)
 		
 		ReplaceString(sName, sizeof(sName), "\x03", szColor);
 		ReplaceString(sMessage, sizeof(sMessage), "\x03", szColor);
-		
-		bWorkAround = true;
 	}
+	
+	Format(sFormat, sizeof(sFormat), "%s%s\x01", szColor, sFormat);
+	
+	//Make a copy of the format buffer and use that as the print so the format string stays the same.
+	char sBuffer[MAXLENGTH_BUFFER];
+	strcopy(sBuffer, sizeof(sBuffer), sFormat);
 
 	//Replace the specific characters for the name and message strings.
 	ReplaceString(sBuffer, sizeof(sBuffer), "{1}", sName);
