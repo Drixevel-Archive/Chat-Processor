@@ -25,6 +25,7 @@ ConVar convar_Default_ProcessColors;
 ConVar convar_Default_RemoveColors;
 ConVar convar_StripColors;
 ConVar convar_DeadChat;
+ConVar convar_CSGO5v5;
 
 EngineVersion engine;
 
@@ -82,6 +83,8 @@ public void OnPluginStart()
 
 	AddCommandListener(Command_Say, "say");
 	AddCommandListener(Command_Say, "say_team");
+	
+	convar_CSGO5v5 = FindConVar("sv_competitive_official_5v5");
 
 	hTrie_MessageFormats = CreateTrie();
 }
@@ -325,7 +328,7 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 	{
 		Format(sName, sizeof(sName), "\x03%s", sName);
 	}
-
+	
 	if (StrEqual(sMessageCopy, sMessage))
 	{
 		Format(sMessage, sizeof(sMessage), "\x01%s", sMessage);
@@ -382,15 +385,38 @@ public void Frame_OnChatMessage_SayText2(any data)
 		delete hRecipients;
 		return;
 	}
-
+	
 	//Make a copy of the format buffer and use that as the print so the format string stays the same.
 	char sBuffer[MAXLENGTH_BUFFER];
 	strcopy(sBuffer, sizeof(sBuffer), sFormat);
 
 	//Make sure that the text is default for the message if no colors are present.
-	if (iResults != Plugin_Changed && !bProcessColors || bRemoveColors)
+	if (iResults != Plugin_Changed && (!bProcessColors || bRemoveColors))
 	{
 		Format(sMessage, sizeof(sMessage), "\x03%s", sMessage);
+	}
+	
+	// CSGO has an issue with adding team colour dots to messages, we have to workaround it.
+	// Unfortunately the colour will be slightly different.
+	// If anyone knows a better way to do this feel free to open a PR.
+	
+	bool bWorkAround = false;
+	
+	if (engine == Engine_CSGO && convar_CSGO5v5.BoolValue) 
+	{
+		char szColor[6];
+		
+		switch (GetClientTeam(iSender))
+		{
+			case 0, 1:szColor = "\x0E"; // Purple.
+			case 2:szColor = "\x09"; // Yellow.
+			case 3:szColor = "\x0B"; // Blue.
+		}
+		
+		ReplaceString(sName, sizeof(sName), "\x03", szColor);
+		ReplaceString(sMessage, sizeof(sMessage), "\x03", szColor);
+		
+		bWorkAround = true;
 	}
 
 	//Replace the specific characters for the name and message strings.
@@ -421,7 +447,14 @@ public void Frame_OnChatMessage_SayText2(any data)
 
 				if (client && IsClientInGame(client))
 				{
-					CSayText2(client, sBuffer, iSender, bChat);
+					if(bWorkAround) 
+					{
+						PrintToChat(client, sBuffer);
+					} 
+					else 
+					{
+						CSayText2(client, sBuffer, iSender, bChat);
+					}
 				}
 			}
 		}
