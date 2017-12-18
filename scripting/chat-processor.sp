@@ -249,14 +249,14 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 		{
 			continue;
 		}
+		
+		if (!bAllChat && team != GetClientTeam(i))
+		{
+			continue;
+		}
 
 		if (IsPlayerAlive(iSender))
 		{
-			if (!bAllChat && team != GetClientTeam(i))
-			{
-				continue;
-			}
-
 			if (iDeadTalk == 0 && !IsPlayerAlive(i))
 			{
 				continue;
@@ -270,7 +270,12 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 			}
 		}
 
-		PushArrayCell(hRecipients, i);
+		PushArrayCell(hRecipients, GetClientUserId(i));
+	}
+	
+	if (FindValueInArray(hRecipients, GetClientUserId(iSender)) == -1)
+	{
+		PushArrayCell(hRecipients, GetClientUserId(iSender));
 	}
 
 	//Retrieve the default values for coloring and use these as a base for developers to change later.
@@ -327,7 +332,7 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 	}
 
 	Handle hPack = CreateDataPack();
-	WritePackCell(hPack, iSender);
+	WritePackCell(hPack, GetClientUserId(iSender));
 	WritePackCell(hPack, hRecipients);
 	WritePackString(hPack, sName);
 	WritePackString(hPack, sMessage);
@@ -349,7 +354,7 @@ public void Frame_OnChatMessage_SayText2(any data)
 	//Retrieve pack contents and what not, this part is obvious.
 	ResetPack(data);
 
-	int iSender = ReadPackCell(data);
+	int iSender = GetClientOfUserId(ReadPackCell(data));
 	Handle hRecipients = ReadPackCell(data);
 
 	char sName[MAXLENGTH_NAME];
@@ -371,6 +376,12 @@ public void Frame_OnChatMessage_SayText2(any data)
 	Action iResults = ReadPackCell(data);
 
 	CloseHandle(data);
+	
+	if(!iSender || !IsClientInGame(iSender)) 
+	{
+		delete hRecipients;
+		return;
+	}
 
 	//Make a copy of the format buffer and use that as the print so the format string stays the same.
 	char sBuffer[MAXLENGTH_BUFFER];
@@ -406,9 +417,9 @@ public void Frame_OnChatMessage_SayText2(any data)
 		{
 			for (int i = 0; i < GetArraySize(hRecipients); i++)
 			{
-				int client = GetArrayCell(hRecipients, i);
+				int client = GetClientOfUserId(GetArrayCell(hRecipients, i));
 
-				if (IsClientInGame(client))
+				if (client && IsClientInGame(client))
 				{
 					CSayText2(client, sBuffer, iSender, bChat);
 				}
@@ -418,9 +429,9 @@ public void Frame_OnChatMessage_SayText2(any data)
 		{
 			for (int i = 0; i < GetArraySize(hRecipients); i++)
 			{
-				int client = GetArrayCell(hRecipients, i);
+				int client = GetClientOfUserId(GetArrayCell(hRecipients, i));
 
-				if (IsClientInGame(client))
+				if (client && IsClientInGame(client))
 				{
 					CSetNextAuthor(iSender);
 					CPrintToChat(client, sBuffer);
@@ -471,12 +482,12 @@ public Action OnSayText(UserMsg msg_id, BfRead msg, const int[] players, int pla
 	Handle hRecipients = CreateArray();
 	for (int i = 0; i < playersNum; i++)
 	{
-		PushArrayCell(hRecipients, players[i]);
+		PushArrayCell(hRecipients, GetClientUserId(players[i]));
 	}
 
-	if (FindValueInArray(hRecipients, iSender) == -1)
+	if (FindValueInArray(hRecipients, GetClientUserId(iSender)) == -1)
 	{
-		PushArrayCell(hRecipients, iSender);
+		PushArrayCell(hRecipients, GetClientUserId(iSender));
 	}
 
 	char sName[MAXLENGTH_NAME];
@@ -547,7 +558,7 @@ public Action OnSayText(UserMsg msg_id, BfRead msg, const int[] players, int pla
 	}
 
 	Handle hPack = CreateDataPack();
-	WritePackCell(hPack, iSender);
+	WritePackCell(hPack, GetClientUserId(iSender));
 	WritePackCell(hPack, hRecipients);
 	WritePackString(hPack, sFlag);
 	WritePackString(hPack, sName);
@@ -568,7 +579,7 @@ public void Frame_OnChatMessage_SayText(any data)
 {
 	ResetPack(data);
 
-	int iSender = ReadPackCell(data);
+	int iSender = GetClientOfUserId(ReadPackCell(data));
 
 	Handle hRecipients = ReadPackCell(data);
 
@@ -591,6 +602,12 @@ public void Frame_OnChatMessage_SayText(any data)
 	Action iResults = view_as<Action>(ReadPackCell(data));
 
 	CloseHandle(data);
+	
+	if(!iSender || !IsClientInGame(iSender)) 
+	{
+		delete hRecipients;
+		return;
+	}
 
 	int iTeamColor;
 	switch (GetClientTeam(iSender))
@@ -618,9 +635,9 @@ public void Frame_OnChatMessage_SayText(any data)
 	{
 		for (int i = 0; i < GetArraySize(hRecipients); i++)
 		{
-			int client = GetArrayCell(hRecipients, i);
+			int client = GetClientOfUserId(GetArrayCell(hRecipients, i));
 
-			if (IsClientInGame(client))
+			if (client && IsClientInGame(client))
 			{
 				CSayText2(client, sBuffer, iSender);
 			}
