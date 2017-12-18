@@ -33,6 +33,7 @@ Handle hForward_OnChatMessage;
 Handle hForward_OnChatMessagePost;
 
 Handle hTrie_MessageFormats;
+ArrayList g_hRecipients;
 
 bool bProto;
 bool bHooked;
@@ -56,6 +57,8 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 {
 	RegPluginLibrary("chat-processor");
 	CreateNative("ChatProcessor_GetFlagFormatString", Native_GetFlagFormatString);
+	CreateNative("ChatProcessor_AddRecipient", Native_AddToRecipients);
+	CreateNative("ChatProcessor_RemoveRecipient", Native_RemoveFromRecipients);
 
 	hForward_OnChatMessage = CreateGlobalForward("CP_OnChatMessage", ET_Hook, Param_CellByRef, Param_Cell, Param_String, Param_String, Param_String, Param_CellByRef, Param_CellByRef);
 	hForward_OnChatMessagePost = CreateGlobalForward("CP_OnChatMessagePost", ET_Ignore, Param_Cell, Param_Cell, Param_String, Param_String, Param_String, Param_String, Param_Cell, Param_Cell);
@@ -215,7 +218,7 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 	}
 
 	//It's easier just to use a handle here for an array instead of passing 2 arguments through both forwards with static arrays.
-	Handle hRecipients = CreateArray();
+	g_hRecipients = CreateArray();
 
 	bool bAllChat = StrContains(sFlag, "_All") != -1;
 	ConVar convar_DeadTalk;
@@ -273,12 +276,12 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 			}
 		}
 
-		PushArrayCell(hRecipients, GetClientUserId(i));
+		PushArrayCell(g_hRecipients, GetClientUserId(i));
 	}
 	
-	if (FindValueInArray(hRecipients, GetClientUserId(iSender)) == -1)
+	if (FindValueInArray(g_hRecipients, GetClientUserId(iSender)) == -1)
 	{
-		PushArrayCell(hRecipients, GetClientUserId(iSender));
+		PushArrayCell(g_hRecipients, GetClientUserId(iSender));
 	}
 
 	//Retrieve the default values for coloring and use these as a base for developers to change later.
@@ -298,7 +301,7 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 	//Fire the pre-forward. https://i.ytimg.com/vi/A2a0Ht01qA8/maxresdefault.jpg
 	Call_StartForward(hForward_OnChatMessage);
 	Call_PushCellRef(iSender);
-	Call_PushCell(hRecipients);
+	Call_PushCell(g_hRecipients);
 	Call_PushStringEx(sFlag, sizeof(sFlag), SM_PARAM_STRING_UTF8|SM_PARAM_STRING_COPY, SM_PARAM_COPYBACK);
 	Call_PushStringEx(sName, sizeof(sName), SM_PARAM_STRING_UTF8|SM_PARAM_STRING_COPY, SM_PARAM_COPYBACK);
 	Call_PushStringEx(sMessage, sizeof(sMessage), SM_PARAM_STRING_UTF8|SM_PARAM_STRING_COPY, SM_PARAM_COPYBACK);
@@ -312,7 +315,7 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 	//We ran into a native error, gotta report it.
 	if (error != SP_ERROR_NONE)
 	{
-		delete hRecipients;
+		delete g_hRecipients;
 		ThrowNativeError(error, "Global Forward 'CP_OnChatMessage' has failed to fire. [Error code: %i]", error);
 		return Plugin_Continue;
 	}
@@ -320,7 +323,7 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 	//Check if the flag string was changed after the pre-forward and if so, re-retrieve the format string.
 	if (!StrEqual(sFlag, sFlagCopy) && !GetTrieString(hTrie_MessageFormats, sFlag, sFormat, sizeof(sFormat)))
 	{
-		delete hRecipients;
+		delete g_hRecipients;
 		return Plugin_Continue;
 	}
 
@@ -336,7 +339,6 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 
 	Handle hPack = CreateDataPack();
 	WritePackCell(hPack, GetClientUserId(iSender));
-	WritePackCell(hPack, hRecipients);
 	WritePackString(hPack, sName);
 	WritePackString(hPack, sMessage);
 	WritePackString(hPack, sFlag);
@@ -352,14 +354,13 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 	return Plugin_Stop;
 }
 
-public void Frame_OnChatMessage_SayText2(any data)
+public void Frame_OnChatMessage_SayText2(DataPack data)
 {
 	//Retrieve pack contents and what not, this part is obvious.
 	ResetPack(data);
 
 	int iSender = GetClientOfUserId(ReadPackCell(data));
-	Handle hRecipients = ReadPackCell(data);
-
+	
 	char sName[MAXLENGTH_NAME];
 	ReadPackString(data, sName, sizeof(sName));
 
@@ -378,11 +379,11 @@ public void Frame_OnChatMessage_SayText2(any data)
 	bool bChat = ReadPackCell(data);
 	Action iResults = ReadPackCell(data);
 
-	CloseHandle(data);
+	delete data;
 	
 	if(!iSender || !IsClientInGame(iSender)) 
 	{
-		delete hRecipients;
+		delete g_hRecipients;
 		return;
 	}
 	
@@ -440,9 +441,9 @@ public void Frame_OnChatMessage_SayText2(any data)
 		//Send the message to clients.
 		if (bProto)
 		{
-			for (int i = 0; i < GetArraySize(hRecipients); i++)
+			for (int i = 0; i < GetArraySize(g_hRecipients); i++)
 			{
-				int client = GetClientOfUserId(GetArrayCell(hRecipients, i));
+				int client = GetClientOfUserId(GetArrayCell(g_hRecipients, i));
 
 				if (client && IsClientInGame(client))
 				{
@@ -459,9 +460,9 @@ public void Frame_OnChatMessage_SayText2(any data)
 		}
 		else
 		{
-			for (int i = 0; i < GetArraySize(hRecipients); i++)
+			for (int i = 0; i < GetArraySize(g_hRecipients); i++)
 			{
-				int client = GetClientOfUserId(GetArrayCell(hRecipients, i));
+				int client = GetClientOfUserId(GetArrayCell(g_hRecipients, i));
 
 				if (client && IsClientInGame(client))
 				{
@@ -475,7 +476,7 @@ public void Frame_OnChatMessage_SayText2(any data)
 	//Finally... fire the post-forward after the message has been sent and processed. https://s-media-cache-ak0.pinimg.com/564x/a5/bb/3c/a5bb3c3e05089a40ef01ea082ac39e24.jpg
 	Call_StartForward(hForward_OnChatMessagePost);
 	Call_PushCell(iSender);
-	Call_PushCell(hRecipients);
+	Call_PushCell(g_hRecipients);
 	Call_PushString(sFlag);
 	Call_PushString(sFormat);
 	Call_PushString(sName);
@@ -485,7 +486,7 @@ public void Frame_OnChatMessage_SayText2(any data)
 	Call_Finish();
 
 	//Close the recipients handle.
-	delete hRecipients;
+	delete g_hRecipients;
 }
 
 ////////////////////
@@ -511,15 +512,15 @@ public Action OnSayText(UserMsg msg_id, BfRead msg, const int[] players, int pla
 		BfReadBool(msg);
 	}
 
-	Handle hRecipients = CreateArray();
+	g_hRecipients = CreateArray();
 	for (int i = 0; i < playersNum; i++)
 	{
-		PushArrayCell(hRecipients, GetClientUserId(players[i]));
+		PushArrayCell(g_hRecipients, GetClientUserId(players[i]));
 	}
 
-	if (FindValueInArray(hRecipients, GetClientUserId(iSender)) == -1)
+	if (FindValueInArray(g_hRecipients, GetClientUserId(iSender)) == -1)
 	{
-		PushArrayCell(hRecipients, GetClientUserId(iSender));
+		PushArrayCell(g_hRecipients, GetClientUserId(iSender));
 	}
 
 	char sName[MAXLENGTH_NAME];
@@ -555,7 +556,7 @@ public Action OnSayText(UserMsg msg_id, BfRead msg, const int[] players, int pla
 
 	Call_StartForward(hForward_OnChatMessage);
 	Call_PushCellRef(iSender);
-	Call_PushCell(hRecipients);
+	Call_PushCell(g_hRecipients);
 	Call_PushStringEx(sFlag, sizeof(sFlag), SM_PARAM_STRING_UTF8|SM_PARAM_STRING_COPY, SM_PARAM_COPYBACK);
 	Call_PushStringEx(sName, sizeof(sName), SM_PARAM_STRING_UTF8|SM_PARAM_STRING_COPY, SM_PARAM_COPYBACK);
 	Call_PushStringEx(sMessage, sizeof(sMessage), SM_PARAM_STRING_UTF8|SM_PARAM_STRING_COPY, SM_PARAM_COPYBACK);
@@ -568,7 +569,7 @@ public Action OnSayText(UserMsg msg_id, BfRead msg, const int[] players, int pla
 	if (error != SP_ERROR_NONE)
 	{
 		ThrowNativeError(error, "Forward has failed to fire.");
-		CloseHandle(hRecipients);
+		delete g_hRecipients;
 		return Plugin_Continue;
 	}
 
@@ -576,7 +577,7 @@ public Action OnSayText(UserMsg msg_id, BfRead msg, const int[] players, int pla
 	{
 		case Plugin_Continue, Plugin_Handled:
 		{
-			CloseHandle(hRecipients);
+			delete g_hRecipients;
 			return iResults;
 		}
 	}
@@ -591,7 +592,6 @@ public Action OnSayText(UserMsg msg_id, BfRead msg, const int[] players, int pla
 
 	Handle hPack = CreateDataPack();
 	WritePackCell(hPack, GetClientUserId(iSender));
-	WritePackCell(hPack, hRecipients);
 	WritePackString(hPack, sFlag);
 	WritePackString(hPack, sName);
 	WritePackString(hPack, sMessage);
@@ -607,14 +607,12 @@ public Action OnSayText(UserMsg msg_id, BfRead msg, const int[] players, int pla
 	return Plugin_Handled;
 }
 
-public void Frame_OnChatMessage_SayText(any data)
+public void Frame_OnChatMessage_SayText(DataPack data)
 {
 	ResetPack(data);
 
 	int iSender = GetClientOfUserId(ReadPackCell(data));
-
-	Handle hRecipients = ReadPackCell(data);
-
+	
 	char sFlag[64];
 	ReadPackString(data, sFlag, sizeof(sFlag));
 
@@ -633,11 +631,11 @@ public void Frame_OnChatMessage_SayText(any data)
 	//bool bChat = ReadPackCell(data);
 	Action iResults = view_as<Action>(ReadPackCell(data));
 
-	CloseHandle(data);
+	delete data;
 	
 	if(!iSender || !IsClientInGame(iSender)) 
 	{
-		delete hRecipients;
+		delete g_hRecipients;
 		return;
 	}
 
@@ -665,9 +663,9 @@ public void Frame_OnChatMessage_SayText(any data)
 
 	if (iResults == Plugin_Changed)
 	{
-		for (int i = 0; i < GetArraySize(hRecipients); i++)
+		for (int i = 0; i < GetArraySize(g_hRecipients); i++)
 		{
-			int client = GetClientOfUserId(GetArrayCell(hRecipients, i));
+			int client = GetClientOfUserId(GetArrayCell(g_hRecipients, i));
 
 			if (client && IsClientInGame(client))
 			{
@@ -678,7 +676,7 @@ public void Frame_OnChatMessage_SayText(any data)
 
 	Call_StartForward(hForward_OnChatMessagePost);
 	Call_PushCell(iSender);
-	Call_PushCell(hRecipients);
+	Call_PushCell(g_hRecipients);
 	Call_PushString(sFlag);
 	Call_PushString(sFormat);
 	Call_PushString(sName);
@@ -687,7 +685,8 @@ public void Frame_OnChatMessage_SayText(any data)
 	Call_PushCell(bRemoveColors);
 	Call_Finish();
 
-	delete hRecipients;
+	//Close the recipients handle.
+	delete g_hRecipients;
 }
 
 ////////////////////
@@ -738,6 +737,62 @@ public int Native_GetFlagFormatString(Handle plugin, int numParams)
 	GetTrieString(hTrie_MessageFormats, sFlag, sFormat, sizeof(sFormat));
 
 	SetNativeString(2, sFormat, GetNativeCell(3));
+}
+
+////////////////////
+//Add to recipients array.
+public int Native_AddToRecipients(Handle plugin, int numParams)
+{
+	if(g_hRecipients == null) 
+	{
+		ThrowNativeError(SP_ERROR_NATIVE, "You can only use this native inside CP_OnChatMessage (Pre) forward.");
+		return false;
+	}
+	
+	int iClient = GetNativeCell(1);
+	
+	if (!iClient || !IsClientInGame(iClient)) 
+	{
+		return false;
+	}
+	
+	int iUserId = GetClientUserId(iClient);
+	int iIndex = FindValueInArray(g_hRecipients, iUserId); 
+	
+	if (iIndex == -1)
+	{
+		PushArrayCell(g_hRecipients, iUserId);
+	}
+	
+	return FindValueInArray(g_hRecipients, iUserId) != -1;
+}
+
+////////////////////
+//Remove from recipients array.
+public int Native_RemoveFromRecipients(Handle plugin, int numParams)
+{
+	if(g_hRecipients == null) 
+	{
+		ThrowNativeError(SP_ERROR_NATIVE, "You can only use this native inside CP_OnChatMessage (Pre) forward.");
+		return false;
+	}
+	
+	int iClient = GetNativeCell(1);
+	
+	if (!iClient || !IsClientInGame(iClient)) 
+	{
+		return false;
+	}
+	
+	int iUserId = GetClientUserId(iClient);
+	int iIndex = FindValueInArray(g_hRecipients, iUserId);
+	
+	if(iIndex != -1) 
+	{
+		RemoveFromArray(g_hRecipients, iIndex);
+	}
+	
+	return FindValueInArray(g_hRecipients, iUserId) == -1;
 }
 
 stock void RemoveFrontString(char[] strInput, int iSize, int iVar)
