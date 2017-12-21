@@ -25,6 +25,7 @@ ConVar convar_Default_ProcessColors;
 ConVar convar_Default_RemoveColors;
 ConVar convar_StripColors;
 ConVar convar_DeadChat;
+ConVar convar_ChatSym;
 
 EngineVersion engine;
 
@@ -78,6 +79,8 @@ public void OnPluginStart()
 	convar_Default_RemoveColors = CreateConVar("sm_chatprocessor_remove_colors_default", "0", "Default setting to give forwards to remove colors.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	convar_StripColors = CreateConVar("sm_chatprocessor_strip_colors", "1", "Remove color tags from the name and the message before processing the output.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	convar_DeadChat = CreateConVar("sm_chatprocessor_deadchat", "0", "Controls how dead communicate.\n0 - Off. 1 - Dead players talk to living teammates.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+	convar_ChatSym = CreateConVar("sm_chatprocessor_chatsym", ":", "Chat symbol between the name and the message", FCVAR_NOTIFY);
+	
 	AutoExecConfig();
 
 	AddCommandListener(Command_Say, "say");
@@ -381,7 +384,12 @@ public void Frame_OnChatMessage_SayText2(any data)
 	{
 		Format(sMessage, sizeof(sMessage), "\x03%s", sMessage);
 	}
-
+	
+	//Replace the ':' with the chat symbol.
+	char sChatSym[32];
+	GetConVarString(convar_ChatSym, sChatSym, sizeof(sChatSym));
+	ReplaceStringEx(sBuffer, sizeof(sBuffer), ":", sChatSym);
+	
 	//Replace the specific characters for the name and message strings.
 	ReplaceString(sBuffer, sizeof(sBuffer), "{1}", sName);
 	ReplaceString(sBuffer, sizeof(sBuffer), "{2}", sMessage);
