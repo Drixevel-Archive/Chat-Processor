@@ -23,6 +23,26 @@
 **/
 native void ChatProcessor_GetFlagFormatString(const char[] sFlag, char[] sBuffer, int iSize);
 
+/**
+* Adds a recipient to next chat message..
+* You may only use this inside CP_OnChatMessage (Pre) forward.
+*
+* param iClient			Client index to add to recipients.
+*
+* @return				True if client is in the recipients for next message.
+**/
+native bool ChatProcessor_AddRecipient(int iClient);
+
+/**
+* Removes a recipient from next chat message..
+* You may only use this inside CP_OnChatMessage (Pre) forward.
+*
+* param iClient			Client index to remove from recipients.
+*
+* @return				True if client is not in the recipients for next message.
+**/
+native bool ChatProcessor_RemoveRecipient(int iClient);
+
 //Forwards
 /**
 * Called while sending a chat message before It's sent.
@@ -64,6 +84,8 @@ forward void CP_OnChatMessagePost(int author, ArrayList recipients, const char[]
 public void __pl_chat_processor_SetNTVOptional()
 {
 	MarkNativeAsOptional("ChatProcessor_GetFlagFormatString");
+	MarkNativeAsOptional("ChatProcessor_AddRecipient");
+	MarkNativeAsOptional("ChatProcessor_RemoveRecipient");
 }
 #endif
 
