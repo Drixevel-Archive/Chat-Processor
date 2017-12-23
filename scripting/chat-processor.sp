@@ -264,14 +264,7 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 			continue;
 		}
 
-		if (IsPlayerAlive(iSender))
-		{
-			if (iDeadTalk == 0 && !IsPlayerAlive(i))
-			{
-				continue;
-			}
-		}
-		else
+		if (!IsPlayerAlive(iSender))
 		{
 			if (iDeadTalk == 0 && IsPlayerAlive(i))
 			{
