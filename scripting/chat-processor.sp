@@ -6,10 +6,10 @@
 ////////////////////
 //Defines
 #define PLUGIN_NAME "Chat-Processor"
-#define PLUGIN_AUTHOR "Keith Warren (Drixevel)"
+#define PLUGIN_AUTHOR "Keith Warren (Aerial Vanguard)"
 #define PLUGIN_DESCRIPTION "Replacement for Simple Chat Processor."
-#define PLUGIN_VERSION "2.0.9"
-#define PLUGIN_CONTACT "http://www.drixevel.com/"
+#define PLUGIN_VERSION "2.1.0"
+#define PLUGIN_CONTACT "http://www.github.com/aerialvanguard"
 
 ////////////////////
 //Includes
@@ -34,8 +34,6 @@ Handle hForward_OnChatMessagePost;
 Handle hTrie_MessageFormats;
 
 bool bProto;
-bool bHooked;
-
 bool bNewMsg[MAXPLAYERS + 1];
 
 ////////////////////
@@ -80,9 +78,6 @@ public void OnPluginStart()
 	convar_DeadChat = CreateConVar("sm_chatprocessor_deadchat", "0", "Controls how dead communicate.\n0 - Off. 1 - Dead players talk to living teammates.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	AutoExecConfig();
 
-	AddCommandListener(Command_Say, "say");
-	AddCommandListener(Command_Say, "say_team");
-
 	hTrie_MessageFormats = CreateTrie();
 }
 
@@ -90,8 +85,6 @@ public void OnPluginStart()
 // On Configs Executed
 public void OnConfigsExecuted()
 {
-	bHooked = false;
-
 	if (!GetConVarBool(convar_Status))
 	{
 		return;
@@ -111,31 +104,19 @@ public void OnConfigsExecuted()
 	if (SayText2 != INVALID_MESSAGE_ID)
 	{
 		HookUserMessage(SayText2, OnSayText2, true);
-		bHooked = true;
+		LogMessage("Successfully hooked a SayText2 chat hook.");
 	}
-
-	if (!bHooked)
+	else
 	{
-		UserMsg SayText = GetUserMessageId("SayText");
-		if (SayText != INVALID_MESSAGE_ID)
-		{
-			HookUserMessage(SayText, OnSayText, true);
-			bHooked = true;
-		}
-	}
-
-	switch (bHooked)
-	{
-		case true: LogMessage("Successfully hooked either SayText or SayText2 chat hooks.");
-		case false: SetFailState("Error loading the plugin, both chat hooks are unavailable. (SayText & SayText2)");
+		SetFailState("Error loading the plugin, SayText2 is unavailable.");
 	}
 }
 
 ////////////////////
 // Chat hook
-public Action Command_Say(int client, const char[] command, int argc)
+public Action OnClientSayCommand(int client, const char[] command, const char[] sArgs)
 {
-	if (client > 0 && client <= MaxClients)
+	if (client > 0 && StrContains(command, "say") != -1)
 	{
 		bNewMsg[client] = true;
 	}
@@ -227,15 +208,6 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 			iDeadTalk = GetConVarInt(convar_DeadTalk);
 		}
 	}
-	/*else if (LibraryExists("basecomm"))
-	{
-		convar_DeadTalk = FindConVar("sm_deadtalk");
-
-		if (convar_DeadTalk != null)
-		{
-			iDeadTalk = GetConVarInt(convar_DeadTalk);
-		}
-	}*/
 	else
 	{
 		iDeadTalk = GetConVarInt(convar_DeadChat);
@@ -446,202 +418,6 @@ public void Frame_OnChatMessage_SayText2(any data)
 }
 
 ////////////////////
-//SayText
-public Action OnSayText(UserMsg msg_id, BfRead msg, const int[] players, int playersNum, bool reliable, bool init)
-{
-	int iSender = bProto ? PbReadInt(msg, "ent_idx") : BfReadByte(msg);
-
-	if (iSender <= 0)
-	{
-		return Plugin_Continue;
-	}
-
-	char sMessage[MAXLENGTH_MESSAGE];
-	switch (bProto)
-	{
-		case true: PbReadString(msg, "text", sMessage, sizeof(sMessage));
-		case false: BfReadString(msg, sMessage, sizeof(sMessage));
-	}
-
-	if (!bProto)
-	{
-		BfReadBool(msg);
-	}
-
-	Handle hRecipients = CreateArray();
-	for (int i = 0; i < playersNum; i++)
-	{
-		PushArrayCell(hRecipients, players[i]);
-	}
-
-	if (FindValueInArray(hRecipients, iSender) == -1)
-	{
-		PushArrayCell(hRecipients, iSender);
-	}
-
-	char sName[MAXLENGTH_NAME];
-	GetClientName(iSender, sName, sizeof(sName));
-
-	char sBuffer[MAXLENGTH_BUFFER];
-	Format(sBuffer, sizeof(sBuffer), "%s:", sName);
-
-	int iPos = StrContains(sMessage, sBuffer);
-
-	char sFlag[64];
-	if (iPos == 0)
-	{
-		sFlag[0] = '\0';
-	}
-	else
-	{
-		Format(sFlag, iPos + 1, "%s ", sMessage);
-	}
-
-	char sFormat[MAXLENGTH_BUFFER];
-	if (!GetTrieString(hTrie_MessageFormats, sFlag, sFormat, sizeof(sFormat)))
-	{
-		return Plugin_Continue;
-	}
-
-	ReplaceString(sMessage, sizeof(sMessage), "\n", "");
-
-	strcopy(sMessage, sizeof(sMessage), sMessage[iPos + strlen(sName) + 2]);
-
-	bool bProcessColors = true;
-	bool bRemoveColors = false;
-
-	Call_StartForward(hForward_OnChatMessage);
-	Call_PushCellRef(iSender);
-	Call_PushCell(hRecipients);
-	Call_PushStringEx(sFlag, sizeof(sFlag), SM_PARAM_STRING_UTF8|SM_PARAM_STRING_COPY, SM_PARAM_COPYBACK);
-	Call_PushStringEx(sName, sizeof(sName), SM_PARAM_STRING_UTF8|SM_PARAM_STRING_COPY, SM_PARAM_COPYBACK);
-	Call_PushStringEx(sMessage, sizeof(sMessage), SM_PARAM_STRING_UTF8|SM_PARAM_STRING_COPY, SM_PARAM_COPYBACK);
-	Call_PushCellRef(bProcessColors);
-	Call_PushCellRef(bRemoveColors);
-
-	Action iResults;
-	int error = Call_Finish(iResults);
-
-	if (error != SP_ERROR_NONE)
-	{
-		ThrowNativeError(error, "Forward has failed to fire.");
-		CloseHandle(hRecipients);
-		return Plugin_Continue;
-	}
-
-	switch (iResults)
-	{
-		case Plugin_Continue, Plugin_Handled:
-		{
-			CloseHandle(hRecipients);
-			return iResults;
-		}
-	}
-
-	char sTemp[MAX_NAME_LENGTH];
-	GetClientName(iSender, sTemp, sizeof(sTemp));
-
-	if (StrEqual(sName, sTemp))
-	{
-		Format(sName, sizeof(sName), "\x03%s", sName);
-	}
-
-	Handle hPack = CreateDataPack();
-	WritePackCell(hPack, iSender);
-	WritePackCell(hPack, hRecipients);
-	WritePackString(hPack, sFlag);
-	WritePackString(hPack, sName);
-	WritePackString(hPack, sMessage);
-	WritePackCell(hPack, bProcessColors);
-	WritePackCell(hPack, bRemoveColors);
-
-	WritePackString(hPack, sFormat);
-	//WritePackCell(hPack, bChat);
-	WritePackCell(hPack, iResults);
-
-	RequestFrame(Frame_OnChatMessage_SayText, hPack);
-
-	return Plugin_Handled;
-}
-
-public void Frame_OnChatMessage_SayText(any data)
-{
-	ResetPack(data);
-
-	int iSender = ReadPackCell(data);
-
-	Handle hRecipients = ReadPackCell(data);
-
-	char sFlag[64];
-	ReadPackString(data, sFlag, sizeof(sFlag));
-
-	char sName[MAXLENGTH_NAME];
-	ReadPackString(data, sName, sizeof(sName));
-
-	char sMessage[MAXLENGTH_MESSAGE];
-	ReadPackString(data, sMessage, sizeof(sMessage));
-
-	bool bProcessColors = ReadPackCell(data);
-	bool bRemoveColors = ReadPackCell(data);
-
-	char sFormat[MAXLENGTH_BUFFER];
-	ReadPackString(data, sFormat, sizeof(sFormat));
-
-	//bool bChat = ReadPackCell(data);
-	Action iResults = view_as<Action>(ReadPackCell(data));
-
-	CloseHandle(data);
-
-	int iTeamColor;
-	switch (GetClientTeam(iSender))
-	{
-		case 0, 1: iTeamColor = 0xCCCCCC;
-		case 2: iTeamColor = 0x4D7942;
-		case 3: iTeamColor = 0xFF4040;
-	}
-
-	char sColor[32];
-	Format(sColor, sizeof(sColor), "\x07%06X", iTeamColor);
-
-	ReplaceString(sName, sizeof(sName), "\x03", sColor);
-	ReplaceString(sMessage, sizeof(sMessage), "\x03", sColor);
-
-	char sBuffer[MAXLENGTH_MESSAGE];
-	Format(sBuffer, sizeof(sBuffer), "\x01%s%s\x01: %s", sFlag, sName, sMessage);
-
-	if (bProcessColors)
-	{
-		CProcessVariables(sBuffer, sizeof(sBuffer), bRemoveColors);
-	}
-
-	if (iResults == Plugin_Changed)
-	{
-		for (int i = 0; i < GetArraySize(hRecipients); i++)
-		{
-			int client = GetArrayCell(hRecipients, i);
-
-			if (IsClientInGame(client))
-			{
-				CSayText2(client, sBuffer, iSender);
-			}
-		}
-	}
-
-	Call_StartForward(hForward_OnChatMessagePost);
-	Call_PushCell(iSender);
-	Call_PushCell(hRecipients);
-	Call_PushString(sFlag);
-	Call_PushString(sFormat);
-	Call_PushString(sName);
-	Call_PushString(sMessage);
-	Call_PushCell(bProcessColors);
-	Call_PushCell(bRemoveColors);
-	Call_Finish();
-
-	delete hRecipients;
-}
-
-////////////////////
 //Parse message formats for flags.
 bool GenerateMessageFormats(const char[] config, const char[] game)
 {
@@ -689,9 +465,4 @@ public int Native_GetFlagFormatString(Handle plugin, int numParams)
 	GetTrieString(hTrie_MessageFormats, sFlag, sFormat, sizeof(sFormat));
 
 	SetNativeString(2, sFormat, GetNativeCell(3));
-}
-
-stock void RemoveFrontString(char[] strInput, int iSize, int iVar)
-{
-	strcopy(strInput, iSize, strInput[iVar]);
 }
