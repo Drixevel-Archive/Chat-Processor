@@ -521,7 +521,7 @@ stock bool Init()
 	int iSlash = FindCharInString(sPluginName, '/', true);
 	if (iSlash > -1) {
 		strcopy(sPluginName, sizeof(sPluginName), sPluginName[iSlash + 1]);
-	}	
+	}
 	ReplaceStringEx(sPluginName, sizeof(sPluginName), ".smx", "");
 
 	BuildPath(Path_SM, sDirectoryPath, sizeof(sDirectoryPath), "%s/", _CV_CONFIG_DIRECTORY);

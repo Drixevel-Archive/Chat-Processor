@@ -8,7 +8,7 @@
 #define PLUGIN_NAME "Chat-Processor"
 #define PLUGIN_AUTHOR "Keith Warren (Aerial Vanguard)"
 #define PLUGIN_DESCRIPTION "Replacement for Simple Chat Processor."
-#define PLUGIN_VERSION "2.1.0"
+#define PLUGIN_VERSION "2.1.1"
 #define PLUGIN_CONTACT "http://www.github.com/aerialvanguard"
 
 ////////////////////
@@ -25,6 +25,8 @@ ConVar convar_Default_ProcessColors;
 ConVar convar_Default_RemoveColors;
 ConVar convar_StripColors;
 ConVar convar_DeadChat;
+ConVar convar_AllChat;
+ConVar convar_RestrictDeadChat;
 
 EngineVersion engine;
 
@@ -75,7 +77,9 @@ public void OnPluginStart()
 	convar_Default_ProcessColors = CreateConVar("sm_chatprocessor_process_colors_default", "1", "Default setting to give forwards to process colors.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	convar_Default_RemoveColors = CreateConVar("sm_chatprocessor_remove_colors_default", "0", "Default setting to give forwards to remove colors.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	convar_StripColors = CreateConVar("sm_chatprocessor_strip_colors", "1", "Remove color tags from the name and the message before processing the output.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
-	convar_DeadChat = CreateConVar("sm_chatprocessor_deadchat", "0", "Controls how dead communicate.\n0 - Off. 1 - Dead players talk to living teammates.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+	convar_DeadChat = CreateConVar("sm_chatprocessor_deadchat", "0", "Controls how dead communicate.\n(0 = off, 1 = on)", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+	convar_AllChat = CreateConVar("sm_chatprocessor_allchat", "0", "Allows both teams to communicate with each other through team chat.\n(0 = off, 1 = on)", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+	convar_RestrictDeadChat = CreateConVar("sm_chatprocessor_restrictdeadchat", "0", "Restricts all chat for the dead entirely.\n(0 = off, 1 = on)", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	AutoExecConfig();
 
 	hTrie_MessageFormats = CreateTrie();
@@ -195,24 +199,9 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 	//It's easier just to use a handle here for an array instead of passing 2 arguments through both forwards with static arrays.
 	Handle hRecipients = CreateArray();
 
-	bool bAllChat = StrContains(sFlag, "_All") != -1;
-	ConVar convar_DeadTalk;
-	int iDeadTalk;
-
-	if (engine == Engine_CSGO)
-	{
-		convar_DeadTalk = FindConVar("sv_deadtalk");
-
-		if (convar_DeadTalk != null)
-		{
-			iDeadTalk = GetConVarInt(convar_DeadTalk);
-		}
-	}
-	else
-	{
-		iDeadTalk = GetConVarInt(convar_DeadChat);
-	}
-
+	bool bDeadTalk = GetConVarBool(convar_DeadChat);
+	bool bAllTalk = GetConVarBool(convar_AllChat);
+	bool bRestrictDeadChat = GetConVarBool(convar_RestrictDeadChat);
 	int team = GetClientTeam(iSender);
 
 	for (int i = 1; i < MaxClients; i++)
@@ -222,24 +211,19 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 			continue;
 		}
 
-		if (IsPlayerAlive(iSender))
+		if (bRestrictDeadChat && !IsPlayerAlive(iSender))
 		{
-			if (!bAllChat && team != GetClientTeam(i))
-			{
-				continue;
-			}
-
-			if (iDeadTalk == 0 && !IsPlayerAlive(i))
-			{
-				continue;
-			}
+			continue;
 		}
-		else
+
+		if (!IsPlayerAlive(iSender) && !bDeadTalk && IsPlayerAlive(i))
 		{
-			if (iDeadTalk == 0 && IsPlayerAlive(i))
-			{
-				continue;
-			}
+			continue;
+		}
+
+		if (!bAllTalk && StrContains(sFlag, "_All") == -1 && team != GetClientTeam(i))
+		{
+			continue;
 		}
 
 		PushArrayCell(hRecipients, i);
@@ -310,6 +294,7 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 	WritePackString(hPack, sFormat);
 	WritePackCell(hPack, bChat);
 	WritePackCell(hPack, iResults);
+	WritePackCell(hPack, bRestrictDeadChat);
 
 	RequestFrame(Frame_OnChatMessage_SayText2, hPack);
 
@@ -342,7 +327,14 @@ public void Frame_OnChatMessage_SayText2(any data)
 	bool bChat = ReadPackCell(data);
 	Action iResults = ReadPackCell(data);
 
+	bool bRestrictDeadChat = ReadPackCell(data);
+
 	CloseHandle(data);
+
+	if (bRestrictDeadChat)
+	{
+		PrintToChat(iSender, "Dead chat is currently restricted.");
+	}
 
 	//Make a copy of the format buffer and use that as the print so the format string stays the same.
 	char sBuffer[MAXLENGTH_BUFFER];
@@ -374,25 +366,17 @@ public void Frame_OnChatMessage_SayText2(any data)
 	if (iResults != Plugin_Stop)
 	{
 		//Send the message to clients.
-		if (bProto)
+		for (int i = 0; i < GetArraySize(hRecipients); i++)
 		{
-			for (int i = 0; i < GetArraySize(hRecipients); i++)
-			{
-				int client = GetArrayCell(hRecipients, i);
+			int client = GetArrayCell(hRecipients, i);
 
-				if (IsClientInGame(client))
+			if (client > 0 && IsClientInGame(client))
+			{
+				if (bProto)
 				{
 					CSayText2(client, sBuffer, iSender, bChat);
 				}
-			}
-		}
-		else
-		{
-			for (int i = 0; i < GetArraySize(hRecipients); i++)
-			{
-				int client = GetArrayCell(hRecipients, i);
-
-				if (IsClientInGame(client))
+				else
 				{
 					CSetNextAuthor(iSender);
 					CPrintToChat(client, sBuffer);
