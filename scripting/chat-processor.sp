@@ -27,6 +27,7 @@ ConVar convar_StripColors;
 ConVar convar_DeadChat;
 ConVar convar_AllChat;
 ConVar convar_RestrictDeadChat;
+ConVar convar_AddGOTV;
 
 EngineVersion engine;
 
@@ -80,6 +81,7 @@ public void OnPluginStart()
 	convar_DeadChat = CreateConVar("sm_chatprocessor_deadchat", "1", "Controls how dead communicate.\n(0 = off, 1 = on)", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	convar_AllChat = CreateConVar("sm_chatprocessor_allchat", "0", "Allows both teams to communicate with each other through team chat.\n(0 = off, 1 = on)", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	convar_RestrictDeadChat = CreateConVar("sm_chatprocessor_restrictdeadchat", "0", "Restricts all chat for the dead entirely.\n(0 = off, 1 = on)", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+	convar_AddGOTV = CreateConVar("sm_chatprocessor_addgotv", "1", "Add GOTV client to recipients list", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	AutoExecConfig();
 
 	hTrie_MessageFormats = CreateTrie();
@@ -206,9 +208,17 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 
 	for (int i = 1; i < MaxClients; i++)
 	{
-		if (!IsClientInGame(i) || IsFakeClient(i))
+		if (!IsClientInGame(i) || (!convar_AddGOTV.BoolValue && IsFakeClient(i)))
 		{
 			continue;
+		}
+
+		if (convar_AddGOTV.BoolValue && IsFakeClient(i) && IsClientSourceTV(i))
+		{
+			if (FindValueInArray(hRecipients, GetClientUserId(i)) == -1)
+			{
+				PushArrayCell(hRecipients, GetClientUserId(i));
+			}
 		}
 
 		if (bRestrictDeadChat && !IsPlayerAlive(iSender))
