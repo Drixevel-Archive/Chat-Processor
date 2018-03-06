@@ -440,6 +440,8 @@ void GenerateMessageFormats(const char[] config, const char[] game)
 
 		LogMessage("Message formats generated for game '%s'.", game);
 		delete kv;
+
+		return;
 	}
 
 	LogError("Error parsing the flag message formatting config for game '%s', please verify its integrity.", game);
