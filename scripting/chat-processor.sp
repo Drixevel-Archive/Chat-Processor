@@ -8,7 +8,7 @@
 #define PLUGIN_NAME "Chat-Processor"
 #define PLUGIN_AUTHOR "Keith Warren (Shaders Allen)"
 #define PLUGIN_DESCRIPTION "Replacement for Simple Chat Processor."
-#define PLUGIN_VERSION "2.1.3"
+#define PLUGIN_VERSION "2.1.4"
 #define PLUGIN_CONTACT "http://www.github.com/shadersallen"
 
 ////////////////////
@@ -152,7 +152,7 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 	{
 		bNewMsg[iSender] = false;
 	}
-	else
+	else if (reliable)	//Fix for other plugins that use SayText2 I guess?
 	{
 		return Plugin_Stop;
 	}
