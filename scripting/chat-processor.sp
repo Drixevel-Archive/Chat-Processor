@@ -238,7 +238,7 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 			continue;
 		}
 
-		PushArrayCell(hRecipients, GetClientUserId(i));
+		hRecipients.Push(GetClientUserId(i));
 	}
 
 	//Retrieve the default values for coloring and use these as a base for developers to change later.
@@ -322,19 +322,19 @@ public void Frame_OnChatMessage_SayText2(DataPack data)
 	ArrayList hRecipients = data.ReadCell();
 
 	char sName[MAXLENGTH_NAME];
-	ReadPackString(data, sName, sizeof(sName));
+	data.ReadString(sName, sizeof(sName));
 
 	char sMessage[MAXLENGTH_MESSAGE];
-	ReadPackString(data, sMessage, sizeof(sMessage));
+	data.ReadString(sMessage, sizeof(sMessage));
 
 	char sFlag[MAXLENGTH_FLAG];
-	ReadPackString(data, sFlag, sizeof(sFlag));
+	data.ReadString(sFlag, sizeof(sFlag));
 
 	bool bProcessColors = data.ReadCell();
 	bool bRemoveColors = data.ReadCell();
 
 	char sFormat[MAXLENGTH_BUFFER];
-	ReadPackString(data, sFormat, sizeof(sFormat));
+	data.ReadString(sFormat, sizeof(sFormat));
 
 	bool bChat = data.ReadCell();
 	Action iResults = data.ReadCell();
