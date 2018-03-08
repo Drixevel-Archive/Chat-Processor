@@ -14,6 +14,12 @@
 //#error Can't compile include.
 //#endif
 
+//Because I'm too stupid at remembering how to do this properly.
+//Apply Bit: damagetype |= DMG_CRIT;
+//Apply Multi Bit: damagetype |= (DMG_CRIT | DMG_BURN);
+//Remove Bit: damagetype &= ~DMG_BURN;
+//Remove Multi Bit: damagetype &= ~(DMG_CRIT | DMG_BURN);
+
 #if defined _sourcemod_misc_included
 #endinput
 #endif
@@ -2081,6 +2087,70 @@ stock void SQL_FetchClientName(int client, Database database, char[] buffer, int
 	strcopy(buffer, size, sEscapedName);
 }
 
+stock bool GetGroundCoordinates(int entity, float buffer[3], float distance = 0.0, float offset[3] = {0.0, 0.0, 0.0})
+{
+	float vecOrigin[3];
+	GetEntPropVector(entity, Prop_Data, "m_vecAbsOrigin", vecOrigin);
+
+	float vecLook[3] = {90.0, 0.0, 0.0};
+	Handle trace = TR_TraceRayEx(vecOrigin, vecLook, MASK_SOLID_BRUSHONLY, RayType_Infinite);
+
+	if (TR_DidHit(trace))
+	{
+		TR_GetEndPosition(buffer, trace);
+
+		if (distance > 0.0 && vecOrigin[2] - buffer[2] > distance)
+		{
+			buffer[0] += offset[0];
+			buffer[1] += offset[1];
+			buffer[2] += offset[2];
+
+			return true;
+		}
+
+		buffer[0] += offset[0];
+		buffer[1] += offset[1];
+		buffer[2] += offset[2];
+
+		return false;
+	}
+
+	delete trace;
+	return false;
+}
+
+stock bool GetCeilingCoordinates(int entity, float buffer[3], float distance = 0.0, float offset[3] = {0.0, 0.0, 0.0})
+{
+	float vecOrigin[3];
+	GetEntPropVector(entity, Prop_Data, "m_vecAbsOrigin", vecOrigin);
+
+	float vecLook[3] = {-90.0, 0.0, 0.0};
+	Handle trace = TR_TraceRayEx(vecOrigin, vecLook, MASK_SOLID_BRUSHONLY, RayType_Infinite);
+
+	if (TR_DidHit(trace))
+	{
+		TR_GetEndPosition(buffer, trace);
+
+		if (distance > 0.0 && vecOrigin[2] - buffer[2] > distance)
+		{
+			buffer[0] += offset[0];
+			buffer[1] += offset[1];
+			buffer[2] += offset[2];
+
+			return true;
+		}
+
+		buffer[0] += offset[0];
+		buffer[1] += offset[1];
+		buffer[2] += offset[2];
+
+		return false;
+	}
+
+	delete trace;
+	return false;
+}
+
 /*---------------------------------------------------------*/
 //Menu stocks by Kisslick
 /*---------------------------------------------------------*/
@@ -2676,10 +2746,20 @@ stock void TF2Attrib_RemoveByName_Weapons(int client, int weapon = -1, char[] at
 	}
 }
 
-stock void TF2Attrib_ApplyMoveSpeedBonus(int client, float value)
+stock float TF2Attrib_ApplyMoveSpeedBonus(int client, float value)
 {
+	Address addr = TF2Attrib_GetByName(client, "move speed bonus");
+	float old;
+
+	if (addr != Address_Null)
+	{
+		old = TF2Attrib_GetValue(addr);
+	}
+
 	TF2Attrib_SetByName(client, "move speed bonus", 1.0 + value);
 	TF2_AddCondition(client, TFCond_SpeedBuffAlly, 0.0);
+
+	return old;
 }
 
 stock void TF2Attrib_RemoveMoveSpeedBonus(int client)
@@ -2688,15 +2768,25 @@ stock void TF2Attrib_RemoveMoveSpeedBonus(int client)
 	TF2_AddCondition(client, TFCond_SpeedBuffAlly, 0.0);
 }
 
-stock void TF2Attrib_ApplyMoveSpeedPenalty(int client, float value)
+stock float TF2Attrib_ApplyMoveSpeedPenalty(int client, float value)
 {
-	TF2Attrib_SetByName(client, "move speed bonus", 1.0 - value);
+	Address addr = TF2Attrib_GetByName(client, "move speed bonus");
+	float old;
+
+	if (addr != Address_Null)
+	{
+		old = TF2Attrib_GetValue(addr);
+	}
+
+	TF2Attrib_SetByName(client, "move speed penalty", 1.0 - value);
 	TF2_AddCondition(client, TFCond_SpeedBuffAlly, 0.0);
+
+	return old;
 }
 
 stock void TF2Attrib_RemoveMoveSpeedPenalty(int client)
 {
-	TF2Attrib_RemoveByName(client, "move speed bonus");
+	TF2Attrib_RemoveByName(client, "move speed penalty");
 	TF2_AddCondition(client, TFCond_SpeedBuffAlly, 0.0);
 }
 
@@ -3142,6 +3232,38 @@ stock void GetAbsBoundingBox(int ent, float mins[3], float maxs[3])
 	maxs[0] += origin[0];
 	maxs[1] += origin[1];
 	maxs[2] += origin[2];
+}
+
+stock void CreateHudConVars(const char[] prefix, ConVar& position = null, ConVar& holdtime = null, ConVar& colors = null, ConVar& effect = null, ConVar& fxtime = null, ConVar& fades = null)
+{
+	char sName[512];
+
+	FormatEx(sName, sizeof(sName), "%sposition", prefix);
+	position = CreateConVar(sName, "-1.0/-1.0", "Position of this hud element.", FCVAR_NOTIFY);
+
+	FormatEx(sName, sizeof(sName), "%sholdtime", prefix);
+	holdtime = CreateConVar(sName, "0.0", "Holdtime for this hud element.", FCVAR_NOTIFY);
+
+	FormatEx(sName, sizeof(sName), "%scolor", prefix);
+	colors = CreateConVar(sName, "255, 255, 255, 255", "Color of this hud element.", FCVAR_NOTIFY);
+
+	FormatEx(sName, sizeof(sName), "%seffect", prefix);
+	effect = CreateConVar(sName, "0", "Effect for this hud element.", FCVAR_NOTIFY);
+
+	FormatEx(sName, sizeof(sName), "%sfxtime", prefix);
+	fxtime = CreateConVar(sName, "0.0", "Fxtime for this hud element.", FCVAR_NOTIFY);
+
+	FormatEx(sName, sizeof(sName), "%sfades", prefix);
+	fades = CreateConVar(sName, "-1.0/-1.0", "Fxtime for this hud element.", FCVAR_NOTIFY);
+}
+
+stock void SetHudTextParamsViaConVars(ConVar& position, ConVar& holdtime, ConVar& color, ConVar& effect, ConVar& fxtime, ConVar& fades)
+{
+	float vecPosition[2]; vecPosition = GetConVar2DVector(position);
+	int iColor[4]; iColor = GetConVarColor(color);
+	float fFades[2]; fFades = GetConVar2DVector(fades);
+
+	SetHudTextParams(vecPosition[0], vecPosition[1], GetConVarFloat(holdtime), iColor[0], iColor[1], iColor[2], iColor[3], GetConVarInt(effect), GetConVarFloat(fxtime), fFades[0], fFades[1]);
 }
 
 /*--------------------------------------------------------->*/
