@@ -2019,18 +2019,52 @@ stock void PushAllPlayersFromPoint(float point[3], float magnitude = 50.0, float
 	}
 }
 
-stock void SpeakResponseConcept(int client, const char[] concept)
+//context examples:
+///domation:revenge
+///domation:dominated
+//class examples:
+///victimclass:<classname> (ex. victimclass:scout)
+stock void SpeakResponseConcept(int client, const char[] concept, const char[] context = "", const char[] class = "")
 {
+	bool hascontext;
+
+	//For class specific context basically.
+	if (strlen(context) > 0)
+	{
+		SetVariantString(context);
+		AcceptEntityInput(client, "AddContext");
+
+		hascontext = true;
+	}
+
+	//dominations require you add more context to them for certain things.
+	if (strlen(class) > 0)
+	{
+		char sClass[64];
+		FormatEx(sClass, sizeof(sClass), "victimclass:%s", class);
+		SetVariantString(sClass);
+		AcceptEntityInput(client, "AddContext");
+
+		hascontext = true;
+	}
+
 	SetVariantString(concept);
 	AcceptEntityInput(client, "SpeakResponseConcept");
+
+	if (hascontext)
+	{
+		AcceptEntityInput(client, "ClearContext");
+	}
 }
 
-stock void SpeakResponseConceptDelayed(int client, const char[] concept, float delayed = 0.0)
+stock void SpeakResponseConceptDelayed(int client, const char[] concept, float delayed = 0.0, const char[] context = "", const char[] class = "")
 {
 	DataPack hPack;
 	CreateDataTimer(ClampCell(delayed, 0.0, 999999.0), Timer_DelayClientConcept28305820358023532, hPack, TIMER_FLAG_NO_MAPCHANGE);
 	WritePackCell(hPack, GetClientUserId(client));
 	WritePackString(hPack, concept);
+	WritePackString(hPack, context);
+	WritePackString(hPack, class);
 }
 
 public Action Timer_DelayClientConcept28305820358023532(Handle timer, any data)
@@ -2041,28 +2075,36 @@ public Action Timer_DelayClientConcept28305820358023532(Handle timer, any data)
 	char sConcept[256];
 	ReadPackString(data, sConcept, sizeof(sConcept));
 
+	char sContext[64];
+	ReadPackString(data, sContext, sizeof(sContext));
+
+	char sClass[64];
+	ReadPackString(data, sClass, sizeof(sClass));
+
 	if (IsPlayerIndex(client) && IsClientInGame(client) && IsPlayerAlive(client))
 	{
-		SpeakResponseConcept(client, sConcept);
+		SpeakResponseConcept(client, sConcept, sContext, sClass);
 	}
 }
 
-stock void SpeakResponseConceptAll(const char[] concept)
+stock void SpeakResponseConceptAll(const char[] concept, const char[] context = "", const char[] class = "")
 {
 	for (int i = 1; i <= MaxClients; i++)
 	{
 		if (IsClientInGame(i) && IsPlayerAlive(i))
 		{
-			SpeakResponseConcept(i, concept);
+			SpeakResponseConcept(i, concept, context, class);
 		}
 	}
 }
 
-stock void SpeakResponseConceptAllDelayed(const char[] concept, float delay = 0.0)
+stock void SpeakResponseConceptAllDelayed(const char[] concept, float delay = 0.0, const char[] context = "", const char[] class = "")
 {
 	DataPack hPack;
 	CreateDataTimer(ClampCell(delay, 0.0, 999999.0), Timer_DelayAllConcept28305820358023532, hPack, TIMER_FLAG_NO_MAPCHANGE);
 	WritePackString(hPack, concept);
+	WritePackString(hPack, context);
+	WritePackString(hPack, class);
 }
 
 public Action Timer_DelayAllConcept28305820358023532(Handle timer, any data)
@@ -2072,7 +2114,13 @@ public Action Timer_DelayAllConcept28305820358023532(Handle timer, any data)
 	char sConcept[256];
 	ReadPackString(data, sConcept, sizeof(sConcept));
 
-	SpeakResponseConceptAll(sConcept);
+	char sContext[64];
+	ReadPackString(data, sContext, sizeof(sContext));
+
+	char sClass[64];
+	ReadPackString(data, sClass, sizeof(sClass));
+
+	SpeakResponseConceptAll(sConcept, sContext, sClass);
 }
 
 stock void SQL_FetchClientName(int client, Database database, char[] buffer, int size)
