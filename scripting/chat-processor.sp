@@ -392,7 +392,7 @@ public void Frame_OnChatMessage_SayText2(DataPack data)
 				else
 				{
 					CSetNextAuthor(iSender);
-					CPrintToChat(client, sBuffer);
+					CPrintToChat(client, "%s", sBuffer);
 				}
 			}
 		}
