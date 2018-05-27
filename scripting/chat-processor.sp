@@ -24,6 +24,7 @@ ConVar convar_Config;
 ConVar convar_Default_ProcessColors;
 ConVar convar_Default_RemoveColors;
 ConVar convar_StripColors;
+ConVar convar_ColorsFlags;
 ConVar convar_DeadChat;
 ConVar convar_AllChat;
 ConVar convar_RestrictDeadChat;
@@ -78,6 +79,7 @@ public void OnPluginStart()
 	convar_Default_ProcessColors = CreateConVar("sm_chatprocessor_process_colors_default", "1", "Default setting to give forwards to process colors.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	convar_Default_RemoveColors = CreateConVar("sm_chatprocessor_remove_colors_default", "0", "Default setting to give forwards to remove colors.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	convar_StripColors = CreateConVar("sm_chatprocessor_strip_colors", "1", "Remove color tags from the name and the message before processing the output.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+	convar_ColorsFlags = CreateConVar("sm_chatprocessor_colors_flag", "b", "Flags required to use the color name and message. Needs sm_chatprocessor_strip_colors 1", FCVAR_NOTIFY);
 	convar_DeadChat = CreateConVar("sm_chatprocessor_deadchat", "1", "Controls how dead communicate.\n(0 = off, 1 = on)", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	convar_AllChat = CreateConVar("sm_chatprocessor_allchat", "0", "Allows both teams to communicate with each other through team chat.\n(0 = off, 1 = on)", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	convar_RestrictDeadChat = CreateConVar("sm_chatprocessor_restrictdeadchat", "0", "Restricts all chat for the dead entirely.\n(0 = off, 1 = on)", FCVAR_NOTIFY, true, 0.0, true, 1.0);
@@ -196,8 +198,13 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 	//Goes for both the name and the message.
 	if (convar_StripColors.BoolValue)
 	{
-		CRemoveColors(sName, sizeof(sName));
-		CRemoveColors(sMessage, sizeof(sMessage));
+		char sFlags[32];
+		convar_ColorsFlags.GetString(sFlags, sizeof(sFlags));
+		if (!strlen(sFlags) || !CheckAdminFlagsByString(iSender, sFlags))
+		{
+			CRemoveColors(sName, sizeof(sName));
+			CRemoveColors(sMessage, sizeof(sMessage));
+		}
 	}
 
 	//It's easier just to use a handle here for an array instead of passing 2 arguments through both forwards with static arrays.
@@ -462,4 +469,36 @@ public int Native_GetFlagFormatString(Handle plugin, int numParams)
 	hTrie_MessageFormats.GetString(sFlag, sFormat, sizeof(sFormat));
 
 	SetNativeString(2, sFormat, GetNativeCell(3));
+}
+
+////////////////////
+//Stock
+stock bool CheckAdminFlagsByString(int client, const char[] flagString)
+{
+	AdminId admin = GetUserAdmin(client);
+
+	if (admin != INVALID_ADMIN_ID)
+	{
+		int count; int found; int flags = ReadFlagString(flagString);
+
+		for (int i = 0; i <= 20; i++)
+		{
+			if (flags & (1 << i))
+			{
+				count++;
+
+				if (GetAdminFlag(admin, view_as<AdminFlag>(i)))
+				{
+					found++;
+				}
+			}
+		}
+
+		if (count == found)
+		{
+			return true;
+		}
+	}
+
+	return false;
 }
