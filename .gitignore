@@ -1,4 +1,4 @@
-.atom-build.yml
+.vscode
 scripting/compile.exe
 scripting/compile.dat
 scripting/compile_all.bat

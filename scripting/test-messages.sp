@@ -13,7 +13,7 @@ public Plugin myinfo =
 	author = "Keith Warren (Shaders Allen)",
 	description = "Tests the Chat-Processor plugin.",
 	version = "1.0.0",
-	url = "http://www.github.com/shadersallen"
+	url = "http://www.shadersallen.com/"
 };
 
 public void OnPluginStart()

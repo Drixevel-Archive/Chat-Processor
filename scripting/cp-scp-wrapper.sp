@@ -21,10 +21,10 @@ int g_iMessageFlag = CHATFLAGS_INVALID;
 public Plugin myinfo =
 {
 	name = "Chat Processor - Simple Chat Processor Wrapper",
-	author = "Keith Warren (Drixevel)",
+	author = "Keith Warren (Shaders Allen)",
 	description = "A simple plugin to create a wrapper API for backwards SCP support.",
 	version = "1.0.0",
-	url = "http://www.drixevel.com/"
+	url = "http://www.shadersallen.com/"
 };
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)

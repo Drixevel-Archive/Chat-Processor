@@ -9,7 +9,7 @@
 #define PLUGIN_AUTHOR "Keith Warren (Shaders Allen)"
 #define PLUGIN_DESCRIPTION "Replacement for Simple Chat Processor."
 #define PLUGIN_VERSION "2.1.4"
-#define PLUGIN_CONTACT "http://www.github.com/shadersallen"
+#define PLUGIN_CONTACT "http://www.shadersallen.com/"
 
 ////////////////////
 //Includes

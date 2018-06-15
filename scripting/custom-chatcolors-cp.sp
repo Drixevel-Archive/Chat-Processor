@@ -7,7 +7,7 @@
 
 public Plugin:myinfo = {
 	name        = "[Source 2013] Custom Chat Colors",
-	author      = "Dr. McKay, Fixed up by Keith Warren (Drixevel)",
+	author      = "Dr. McKay, Fixed up by Keith Warren (Shaders Allen)",
 	description = "Processes chat and provides colors for Source 2013 games",
 	version     = PLUGIN_VERSION,
 	url         = "http://www.doctormckay.com"
