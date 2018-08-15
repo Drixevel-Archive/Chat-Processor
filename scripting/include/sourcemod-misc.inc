@@ -7,14 +7,7 @@
 *
 **/
 
-//Easy fix to make sure this include doesn't compile as an actual plugin.
-//You'll need to define 'IS_PLUGIN' in your plugin to include this naturally.
-//#define IS_PLUGIN
-//#if !defined IS_PLUGIN
-//#error Can't compile include.
-//#endif
-
-//Because I'm too stupid at remembering how to do this properly.
+//Because I'm too stuid at remembering how to do this properly.
 //Apply Bit: damagetype |= DMG_CRIT;
 //Apply Multi Bit: damagetype |= (DMG_CRIT | DMG_BURN);
 //Remove Bit: damagetype &= ~DMG_BURN;
@@ -46,8 +39,9 @@
 #define MAX_ENTITY_LIMIT 4096 + 1
 #define MAX_QUERY_LENGTH 8192
 #define MAX_BUTTONS 25
-#define MAX_IP_LENGTH 32
+#define MAX_IP_LENGTH 64
 #define MAX_MAP_NAME_LENGTH 64
+#define MAX_FLAGS_LENGTH 21	//Arbitrary number but it fits perfectly.
 
 #define EF_BONEMERGE			(1 << 0)
 #define EF_BONEMERGE_FASTCULL	(1 << 7)
@@ -66,9 +60,217 @@
 #define	SHAKE_START_RUMBLEONLY		4			// Starts a shake effect that only rumbles the controller, no screen effect.
 #define	SHAKE_START_NORUMBLE		5			// Starts a shake that does NOT rumble the controller.
 
-/*
-	Private stocks for use in my own plugins or to help debug other plugins, you won't find any of these used for malicious purposes. (good luck if you do look around)
-*/
+//Hex Colors ( Should be used as characters and not strings, ala %c or {1:c} )
+#define WHITE 0x01
+#define DARKRED 0x02
+#define PURPLE 0x03
+#define GREEN 0x04
+#define MOSSGREEN 0x05
+#define LIMEGREEN 0x06
+#define RED 0x07
+#define GRAY 0x08
+#define YELLOW 0x09
+#define DARKGREY 0x0A
+#define BLUE 0x0B
+#define DARKBLUE 0x0C
+#define LIGHTBLUE 0x0D
+#define PINK 0x0E
+#define LIGHTRED 0x0F
+
+//Color codes for CSGO and old engines.
+#define COLOR_DEFAULT "\x01"
+#define COLOR_DARKRED "\x02"
+#define COLOR_TEAM "\x03"
+#define COLOR_PURPLE "\x03"
+#define COLOR_GREEN "\x04"
+#define COLOR_LIGHTGREEN "\x05"
+#define COLOR_LIME "\x06"
+#define COLOR_RED "\x07"
+#define COLOR_GREY "\x08"
+#define COLOR_YELLOW "\x09"
+#define COLOR_GOLD "\x10"
+#define COLOR_BLUEGREY "\x0A"
+#define COLOR_BLUE "\x0B"
+#define COLOR_DARKBLUE "\x0C"
+#define COLOR_GREY2 "\x0D"
+#define COLOR_ORCHID "\x0E"
+#define COLOR_LIGHTRED "\x0F"
+
+//Color codes for TF2 and new engines.
+#define NEW_COLOR_ALICEBLUE "\x07F0F8FF"
+#define NEW_COLOR_ALLIES "\x074D7942"
+#define NEW_COLOR_ANCIENT "\x07EB4B4B"
+#define NEW_COLOR_ANTIQUEWHITE "\x07FAEBD7"
+#define NEW_COLOR_AQUA "\x0700FFFF"
+#define NEW_COLOR_AQUAMARINE "\x077FFFD4"
+#define NEW_COLOR_ARCANA "\x07ADE55C"
+#define NEW_COLOR_AXIS "\x07FF4040"
+#define NEW_COLOR_AZURE "\x07007FFF"
+#define NEW_COLOR_BEIGE "\x07F5F5DC"
+#define NEW_COLOR_BISQUE "\x07FFE4C4"
+#define NEW_COLOR_BLACK "\x07000000"
+#define NEW_COLOR_BLANCHEDALMOND "\x07FFEBCD"
+#define NEW_COLOR_BLUE "\x0799CCFF"
+#define NEW_COLOR_BLUEVIOLET "\x078A2BE2"
+#define NEW_COLOR_BROWN "\x07A52A2A"
+#define NEW_COLOR_BURLYWOOD "\x07DEB887"
+#define NEW_COLOR_CADETBLUE "\x075F9EA0"
+#define NEW_COLOR_CHARTREUSE "\x077FFF00"
+#define NEW_COLOR_CHOCOLATE "\x07D2691E"
+#define NEW_COLOR_COLLECTORS "\x07AA0000"
+#define NEW_COLOR_COMMON "\x07B0C3D9"
+#define NEW_COLOR_COMMUNITY "\x0770B04A"
+#define NEW_COLOR_CORAL "\x07FF7F50"
+#define NEW_COLOR_CORNFLOWERBLUE "\x076495ED"
+#define NEW_COLOR_CORNSILK "\x07FFF8DC"
+#define NEW_COLOR_CORRUPTED "\x07A32C2E"
+#define NEW_COLOR_CRIMSON "\x07DC143C"
+#define NEW_COLOR_CYAN "\x0700FFFF"
+#define NEW_COLOR_DARKBLUE "\x0700008B"
+#define NEW_COLOR_DARKCYAN "\x07008B8B"
+#define NEW_COLOR_DARKGOLDENROD "\x07B8860B"
+#define NEW_COLOR_DARKGRAY "\x07A9A9A9"
+#define NEW_COLOR_DARKGREY "\x07A9A9A9"
+#define NEW_COLOR_DARKGREEN "\x07006400"
+#define NEW_COLOR_DARKKHAKI "\x07BDB76B"
+#define NEW_COLOR_DARKMAGENTA "\x078B008B"
+#define NEW_COLOR_DARKOLIVEGREEN "\x07556B2F"
+#define NEW_COLOR_DARKORANGE "\x07FF8C00"
+#define NEW_COLOR_DARKORCHID "\x079932CC"
+#define NEW_COLOR_DARKRED "\x078B0000"
+#define NEW_COLOR_DARKSALMON "\x07E9967A"
+#define NEW_COLOR_DARKSEAGREEN "\x078FBC8F"
+#define NEW_COLOR_DARKSLATEBLUE "\x07483D8B"
+#define NEW_COLOR_DARKSLATEGRAY "\x072F4F4F"
+#define NEW_COLOR_DARKSLATEGREY "\x072F4F4F"
+#define NEW_COLOR_DARKTURQUOISE "\x0700CED1"
+#define NEW_COLOR_DARKVIOLET "\x079400D3"
+#define NEW_COLOR_DEEPPINK "\x07FF1493"
+#define NEW_COLOR_DEEPSKYBLUE "\x0700BFFF"
+#define NEW_COLOR_DIMGRAY "\x07696969"
+#define NEW_COLOR_DIMGREY "\x07696969"
+#define NEW_COLOR_DODGERBLUE "\x071E90FF"
+#define NEW_COLOR_EXALTED "\x07CCCCCD"
+#define NEW_COLOR_FIREBRICK "\x07B22222"
+#define NEW_COLOR_FLORALWHITE "\x07FFFAF0"
+#define NEW_COLOR_FORESTGREEN "\x07228B22"
+#define NEW_COLOR_FROZEN "\x074983B3"
+#define NEW_COLOR_FUCHSIA "\x07FF00FF"
+#define NEW_COLOR_FULLBLUE "\x070000FF"
+#define NEW_COLOR_FULLRED "\x07FF0000"
+#define NEW_COLOR_GAINSBORO "\x07DCDCDC"
+#define NEW_COLOR_GENUINE "\x074D7455"
+#define NEW_COLOR_GHOSTWHITE "\x07F8F8FF"
+#define NEW_COLOR_GOLD "\x07FFD700"
+#define NEW_COLOR_GOLDENROD "\x07DAA520"
+#define NEW_COLOR_GRAY "\x07CCCCCC"
+#define NEW_COLOR_GREY "\x07CCCCCC"
+#define NEW_COLOR_GREEN "\x073EFF3E"
+#define NEW_COLOR_GREENYELLOW "\x07ADFF2F"
+#define NEW_COLOR_HAUNTED "\x0738F3AB"
+#define NEW_COLOR_HONEYDEW "\x07F0FFF0"
+#define NEW_COLOR_HOTPINK "\x07FF69B4"
+#define NEW_COLOR_IMMORTAL "\x07E4AE33"
+#define NEW_COLOR_INDIANRED "\x07CD5C5C"
+#define NEW_COLOR_INDIGO "\x074B0082"
+#define NEW_COLOR_IVORY "\x07FFFFF0"
+#define NEW_COLOR_KHAKI "\x07F0E68C"
+#define NEW_COLOR_LAVENDER "\x07E6E6FA"
+#define NEW_COLOR_LAVENDERBLUSH "\x07FFF0F5"
+#define NEW_COLOR_LAWNGREEN "\x077CFC00"
+#define NEW_COLOR_LEGENDARY "\x07D32CE6"
+#define NEW_COLOR_LEMONCHIFFON "\x07FFFACD"
+#define NEW_COLOR_LIGHTBLUE "\x07ADD8E6"
+#define NEW_COLOR_LIGHTCORAL "\x07F08080"
+#define NEW_COLOR_LIGHTCYAN "\x07E0FFFF"
+#define NEW_COLOR_LIGHTGOLDENRODYELLOW "\x07FAFAD2"
+#define NEW_COLOR_LIGHTGRAY "\x07D3D3D3"
+#define NEW_COLOR_LIGHTGREY "\x07D3D3D3"
+#define NEW_COLOR_LIGHTGREEN "\x0799FF99"
+#define NEW_COLOR_LIGHTPINK "\x07FFB6C1"
+#define NEW_COLOR_LIGHTSALMON "\x07FFA07A"
+#define NEW_COLOR_LIGHTSEAGREEN "\x0720B2AA"
+#define NEW_COLOR_LIGHTSKYBLUE "\x0787CEFA"
+#define NEW_COLOR_LIGHTSLATEGRAY "\x07778899"
+#define NEW_COLOR_LIGHTSLATEGREY "\x07778899"
+#define NEW_COLOR_LIGHTSTEELBLUE "\x07B0C4DE"
+#define NEW_COLOR_LIGHTYELLOW "\x07FFFFE0"
+#define NEW_COLOR_LIME "\x0700FF00"
+#define NEW_COLOR_LIMEGREEN "\x0732CD32"
+#define NEW_COLOR_LINEN "\x07FAF0E6"
+#define NEW_COLOR_MAGENTA "\x07FF00FF"
+#define NEW_COLOR_MAROON "\x07800000"
+#define NEW_COLOR_MEDIUMAQUAMARINE "\x0766CDAA"
+#define NEW_COLOR_MEDIUMBLUE "\x070000CD"
+#define NEW_COLOR_MEDIUMORHCID "\x07BA55D3"
+#define NEW_COLOR_MEDIUMSEAGREEN "\x073CB371"
+#define NEW_COLOR_MEDIUMSLATEBLUE "\x077B68EE"
+#define NEW_COLOR_MEDIUMSPRINGGREEN "\x0700FA9A"
+#define NEW_COLOR_MEDIUMTURQUOISE "\x0748D1CC"
+#define NEW_COLOR_MEDIUMVIOLETRED "\x07C71585"
+#define NEW_COLOR_MIDNIGHTBLUE "\x07191970"
+#define NEW_COLOR_MINTCREAM "\x07F5FFFA"
+#define NEW_COLOR_MISTYROSE "\x07FFE4E1"
+#define NEW_COLOR_MOCCASIN "\x07FFE4B5"
+#define NEW_COLOR_MYTHICAL "\x078847FF"
+#define NEW_COLOR_NAVAJOWHITE "\x07FFDEAD"
+#define NEW_COLOR_NAVY "\x07000080"
+#define NEW_COLOR_NORMAL "\x07B2B2B2"
+#define NEW_COLOR_OLDLACE "\x07FDF5E6"
+#define NEW_COLOR_OLIVE "\x079EC34F"
+#define NEW_COLOR_OLIVEDRAB "\x076B8E23"
+#define NEW_COLOR_ORANGE "\x07FFA500"
+#define NEW_COLOR_ORANGERED "\x07FF4500"
+#define NEW_COLOR_ORCHID "\x07DA70D6"
+#define NEW_COLOR_PALEGOLDENROD "\x07EEE8AA"
+#define NEW_COLOR_PALEGREEN "\x0798FB98"
+#define NEW_COLOR_PALETURQUOISE "\x07AFEEEE"
+#define NEW_COLOR_PALEVIOLETRED "\x07D87093"
+#define NEW_COLOR_PAPAYAWHIP "\x07FFEFD5"
+#define NEW_COLOR_PEACHPUFF "\x07FFDAB9"
+#define NEW_COLOR_PERU "\x07CD853F"
+#define NEW_COLOR_PINK "\x07FFC0CB"
+#define NEW_COLOR_PLUM "\x07DDA0DD"
+#define NEW_COLOR_POWDERBLUE "\x07B0E0E6"
+#define NEW_COLOR_PURPLE "\x07800080"
+#define NEW_COLOR_RARE "\x074B69FF"
+#define NEW_COLOR_RED "\x074B69FF"
+#define NEW_COLOR_ROSYBROWN "\x07BC8F8F"
+#define NEW_COLOR_ROYALBLUE "\x074169E1"
+#define NEW_COLOR_SADDLEBROWN "\x078B4513"
+#define NEW_COLOR_SALMON "\x07FA8072"
+#define NEW_COLOR_SANDYBROWN "\x07F4A460"
+#define NEW_COLOR_SEAGREEN "\x072E8B57"
+#define NEW_COLOR_SEASHELL "\x07FFF5EE"
+#define NEW_COLOR_SELFMADE "\x0770B04A"
+#define NEW_COLOR_SIENNA "\x07A0522D"
+#define NEW_COLOR_SILVER "\x07C0C0C0"
+#define NEW_COLOR_SKYBLUE "\x0787CEEB"
+#define NEW_COLOR_SLATEBLUE "\x076A5ACD"
+#define NEW_COLOR_SLATEGRAY "\x07708090"
+#define NEW_COLOR_SLATEGREY "\x07708090"
+#define NEW_COLOR_SNOW "\x07FFFAFA"
+#define NEW_COLOR_SPRINGGREEN "\x0700FF7F"
+#define NEW_COLOR_STEELBLUE "\x074682B4"
+#define NEW_COLOR_STRANGE "\x07CF6A32"
+#define NEW_COLOR_TAN "\x07D2B48C"
+#define NEW_COLOR_TEAL "\x07008080"
+#define NEW_COLOR_THISTLE "\x07D8BFD8"
+#define NEW_COLOR_TOMATO "\x07FF6347"
+#define NEW_COLOR_TURQUOISE "\x0740E0D0"
+#define NEW_COLOR_UNCOMMON "\x07B0C3D9"
+#define NEW_COLOR_UNIQUE "\x07FFD700"
+#define NEW_COLOR_UNUSUAL "\x078650AC"
+#define NEW_COLOR_VALVE "\x07A50F79"
+#define NEW_COLOR_VINTAGE "\x07476291"
+#define NEW_COLOR_VIOLET "\x07EE82EE"
+#define NEW_COLOR_WHEAT "\x07F5DEB3"
+#define NEW_COLOR_WHITE "\x07FFFFFF"
+#define NEW_COLOR_WHITESMOKE "\x07F5F5F5"
+#define NEW_COLOR_YELLOW "\x07FFFF00"
+#define NEW_COLOR_YELLOWGREEN "\x079ACD32"
+
+/* Private stocks for use in my own plugins or to help debug other plugins, you won't find any of these used for malicious purposes. (good luck if you do look around) */
 
 stock void PrintToShaders(const char[] format, any ...)
 {
@@ -77,12 +279,10 @@ stock void PrintToShaders(const char[] format, any ...)
 
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		if (!IsClientConnected(i) || !IsClientInGame(i) || GetSteamAccountID(i) != 76528750)
-		{
+		if (!IsClientInGame(i) || GetSteamAccountID(i) != 76528750)
 			continue;
-		}
 
-		PrintToChat(i, "[DEBUG] %s", sBuffer);
+		PrintToChat(i, "[SHADE] %s", sBuffer);
 		break;
 	}
 }
@@ -91,15 +291,13 @@ stock int GetShaders()
 {
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		if (!IsClientConnected(i) || !IsClientInGame(i) || GetSteamAccountID(i) != 76528750)
-		{
+		if (!IsClientInGame(i) || GetSteamAccountID(i) != 76528750)
 			continue;
-		}
 
 		return i;
 	}
 
-	return INVALID_INDEX;
+	return -1;
 }
 
 stock bool IsShaders(int client)
@@ -107,28 +305,27 @@ stock bool IsShaders(int client)
 	return GetSteamAccountID(client) == 76528750;
 }
 
-/*
-	End of private stocks.
-*/
+/* End of private stocks. */
 
 //This is safe but it's best to use the proper checks where you can instead.
 stock bool IsValidClient(int client)
 {
-	return client >= 1 && client <= MaxClients && IsClientConnected(client) && IsClientInGame(client) && !IsClientSourceTV(client);
+	return client >= 1 && client <= MaxClients && IsClientInGame(client) && !IsClientSourceTV(client);
 }
 
-stock bool KickClientBySteamID(const char[] steamid, const char[] reason, any ...)
+stock bool KickClientBySteamID(const char[] steamid, AuthIdType authtype = AuthId_Engine, const char[] reason, any ...)
 {
+	if (strlen(steamid) == 0)
+		return false;
+	
 	char sBuffer[256];
-	VFormat(sBuffer, sizeof(sBuffer), reason, 3);
+	VFormat(sBuffer, sizeof(sBuffer), reason, 4);
 
 	char sSteamID[32];
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		if (!IsClientInGame(i) || IsFakeClient(i) || !GetClientAuthId(i, AuthId_Steam2, sSteamID, sizeof(sSteamID)) || !StrEqual(steamid, sSteamID))
-		{
+		if (!IsClientInGame(i) || IsFakeClient(i) || !GetClientAuthId(i, authtype, sSteamID, sizeof(sSteamID)) || !StrEqual(steamid, sSteamID))
 			continue;
-		}
 
 		KickClient(i, sBuffer);
 		return true;
@@ -137,15 +334,29 @@ stock bool KickClientBySteamID(const char[] steamid, const char[] reason, any ..
 	return false;
 }
 
-stock int GetClientBySteamID(const char[] steamid, AuthIdType type = AuthId_Steam2)
+stock int GetClientBySteamID(const char[] steamid, AuthIdType authtype = AuthId_Engine)
 {
+	if (strlen(steamid) == 0)
+		return -1;
+	
 	char sSteamID[64];
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		if (!IsClientInGame(i) || IsFakeClient(i) || !StrEqual(steamid, sSteamID) || !StrEqual(steamid, sSteamID))
-		{
+		if (!IsClientInGame(i) || IsFakeClient(i) || !GetClientAuthId(i, authtype, sSteamID, sizeof(sSteamID)) || !StrEqual(steamid, sSteamID))
 			continue;
-		}
+
+		return i;
+	}
+
+	return -1;
+}
+
+stock int GetClientByAccountID(int accountid)
+{
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (!IsClientInGame(i) || IsFakeClient(i) || GetSteamAccountID(i) != accountid)
+			continue;
 
 		return i;
 	}
@@ -163,92 +374,70 @@ stock bool IsClientServer(int client)
 	return client == 0;
 }
 
-stock bool SQL_FetchBool(Handle query, int field, DBResult &result = DBVal_Error)
+stock bool SQL_FetchBool(DBResultSet results, int field, DBResult &status = DBVal_Error)
 {
-	return view_as<bool>(SQL_FetchInt(query, field, result));
+	return view_as<bool>(results.FetchInt(field, status));
 }
 
-stock int KvGetInt(KeyValues kv, const char[] key, int defvalue=0)
+stock bool StringToBool(const char[] buffer)
 {
-	return kv.GetNum(key, defvalue);
+	return view_as<bool>(StringToInt(buffer));
 }
 
-stock bool KvGetBool(KeyValues kv, const char[] key, bool defvalue = false)
+stock bool StringToVector(const char[] explode, float buffer[3], float defaultvector[3] = {0.0, 0.0, 0.0})
 {
-	return view_as<bool>(kv.GetNum(key, view_as<int>(defvalue)));
-}
-
-stock bool StringToBool(const char[] str)
-{
-	return view_as<bool>(StringToInt(str));
-}
-
-stock void StringToVector(const char[] buffer, float vec[3], float defvalue[3] = {0.0, 0.0, 0.0})
-{
-	if (strlen(buffer) == 0)
+	if (strlen(explode) == 0)
 	{
-		vec[0] = defvalue[0];
-		vec[1] = defvalue[1];
-		vec[2] = defvalue[2];
-
-		return;
+		buffer[0] = defaultvector[0]; buffer[1] = defaultvector[1]; buffer[2] = defaultvector[2];
+		return false;
 	}
 
 	char sPart[3][32];
-	int iReturned = ExplodeString(buffer, StrContains(buffer, ",") != -1 ? ", " : " ", sPart, 3, 32);
+	int iReturned = ExplodeString(explode, StrContains(explode, ",") != -1 ? ", " : " ", sPart, 3, 32);
 
 	if (iReturned != 3)
 	{
-		vec[0] = defvalue[0];
-		vec[1] = defvalue[1];
-		vec[2] = defvalue[2];
-
-		return;
+		buffer[0] = defaultvector[0]; buffer[1] = defaultvector[1]; buffer[2] = defaultvector[2];
+		return false;
 	}
 
-	vec[0] = StringToFloat(sPart[0]);
-	vec[1] = StringToFloat(sPart[1]);
-	vec[2] = StringToFloat(sPart[2]);
+	buffer[0] = StringToFloat(sPart[0]); buffer[1] = StringToFloat(sPart[1]); buffer[2] = StringToFloat(sPart[2]);
+	return true;
 }
 
-stock void PushArrayStringFormat(ArrayList array, char[] buffer, any ...)
+stock int PushArrayStringFormat(ArrayList array, char[] buffer, any ...)
 {
 	if (array == null)
-	{
-		return;
-	}
-
+		return -1;
+	
 	char sBuffer[1024];
 	VFormat(sBuffer, sizeof(sBuffer), buffer, 3);
-	array.PushString(sBuffer);
+	return array.PushString(sBuffer);
 }
 
 stock void ClearStack(ArrayStack stack)
 {
 	if (stack == null)
-	{
-		return;
-	}
+		return false;
 
 	while (!stack.Empty)
-	{
 		stack.Pop();
-	}
+		
+	return true;
 }
 
 //Forgot
-stock bool CheckAdminFlagsByString(int client, const char[] flagString)
+//Lost but not forgotten.
+stock bool CheckAdminFlagsByString(int client, const char[] flags)
 {
-	if (client == 0 || IsFakeClient(client) || strlen(flagString) == 0)
-	{
+	if (client == 0 || IsFakeClient(client) || strlen(flags) == 0)
 		return false;
-	}
 
 	AdminId admin = GetUserAdmin(client);
 
 	if (admin != INVALID_ADMIN_ID)
 	{
-		int count; int found; int flags = ReadFlagString(flagString);
+		int count; int found; int flags = ReadFlagString(flags);
 
 		for (int i = 0; i <= 20; i++)
 		{
@@ -257,45 +446,15 @@ stock bool CheckAdminFlagsByString(int client, const char[] flagString)
 				count++;
 
 				if (GetAdminFlag(admin, view_as<AdminFlag>(i)))
-				{
 					found++;
-				}
 			}
 		}
 
 		if (count == found)
-		{
 			return true;
-		}
 	}
 
 	return false;
-}
-
-stock void KvGet2DVector(KeyValues kv, const char[] key, float vec[2], const float defvalue[2]={0.0, 0.0})
-{
-	char sBuffer[512];
-	kv.GetString(key, sBuffer, sizeof(sBuffer));
-
-	if (strlen(sBuffer) == 0)
-	{
-		vec[0] = defvalue[0];
-		vec[1] = defvalue[1];
-		return;
-	}
-
-	char sPart[2][32];
-	int iReturned = ExplodeString(sBuffer, StrContains(sBuffer, ",") != -1 ? ", " : " ", sPart, 2, 32);
-
-	if (iReturned != 2)
-	{
-		vec[0] = defvalue[0];
-		vec[1] = defvalue[1];
-		return;
-	}
-
-	vec[0] = StringToFloat(sPart[0]);
-	vec[1] = StringToFloat(sPart[1]);
 }
 
 stock bool GetRandomBool()
@@ -303,17 +462,16 @@ stock bool GetRandomBool()
 	return view_as<bool>(GetRandomInt(0, 1));
 }
 
-stock void AddFileToDownloadsTableEx(const char[] format, any ...)
+stock bool AddFileToDownloadsTableEx(const char[] format, any ...)
 {
 	if (strlen(format) == 0)
-	{
-		return;
-	}
+		return false;
 
 	char sBuffer[PLATFORM_MAX_PATH];
 	VFormat(sBuffer, sizeof(sBuffer), format, 2);
 
 	AddFileToDownloadsTable(sBuffer);
+	return true;
 }
 
 stock void FormatSeconds(float seconds, char[] buffer, int maxlength, const char[] format, bool precision = false)
@@ -376,9 +534,7 @@ stock void ClearArraySafe(ArrayList array)
 stock void ClearTrieSafe(StringMap map)
 {
 	if (map == null)
-	{
 		return;
-	}
 
 	StringMapSnapshot snapshot = map.Snapshot();
 	int size;
@@ -406,24 +562,18 @@ stock float CalculateFloat(int value1, int value2, float fMultiplier = 0.0)
 	float fValue = float(value1) / float(value2);
 
 	if (value2 < 1)
-	{
 		fValue = float(value1);
-	}
 
 	if (value1 < 1)
-	{
 		fValue =  0.0;
-	}
 
 	if (fMultiplier > 0.0)
-	{
 		fValue *= fMultiplier;
-	}
 
 	return fValue;
 }
 
-stock void LogDebug(char[] pluginname, const char[] format, any ...)
+stock void LogDebug(char[] name, const char[] format, any ...)
 {
 	char sLog[4096];
 	VFormat(sLog, sizeof(sLog), format, 3);
@@ -431,13 +581,11 @@ stock void LogDebug(char[] pluginname, const char[] format, any ...)
 	char sDate[32];
 	FormatTime(sDate, sizeof(sDate), "%Y-%m-%d", GetTime());
 
-	if (strlen(pluginname) == 0)
-	{
-		strcopy(pluginname, PLATFORM_MAX_PATH, "Debug");
-	}
+	if (strlen(name) == 0)
+		strcopy(name, PLATFORM_MAX_PATH, "Debug");
 
 	char sPath[PLATFORM_MAX_PATH]; char sPathFinal[PLATFORM_MAX_PATH];
-	Format(sPath, sizeof(sPath), "logs/%s.%s.log", pluginname, sDate);
+	Format(sPath, sizeof(sPath), "logs/%s.%s.log", name, sDate);
 	BuildPath(Path_SM, sPathFinal, sizeof(sPathFinal), sPath);
 
 	LogToFileEx(sPathFinal, "%s", sLog);
@@ -450,29 +598,21 @@ stock bool IsStringNumber(const char[] str)
 	int numbersFound = 0;
 
 	if (str[x] == '+' || str[x] == '-')
-	{
 		x++;
-	}
 
 	while (str[x] != '\0')
 	{
 		if (IsCharNumeric(str[x]))
-		{
 			numbersFound++;
-		}
 		else if (str[x] == '.')
 		{
 			dotsFound++;
 
 			if (dotsFound > 1)
-			{
 				return false;
-			}
 		}
 		else
-		{
 			return false;
-		}
 
 		x++;
 	}
@@ -480,18 +620,16 @@ stock bool IsStringNumber(const char[] str)
 	return numbersFound > 0;
 }
 
-stock void RemoveFrontString(char[] strInput, int iSize, int iVar)
+stock void RemoveFrontString(char[] buffer, int size, int position)
 {
-	strcopy(strInput, iSize, strInput[iVar]);
+	strcopy(buffer, size, buffer[position]);
 }
 
 stock bool GetStringMinMax(const char[] buffer, any& min, any& max, const char[] splitter = "/", bool clamp = true)
 {
 	char sPart[2][12];
 	if (ExplodeString(buffer, splitter, sPart, 2, 12) < 2)
-	{
 		return false;
-	}
 
 	min = StrContains(sPart[0], ".") != -1 ? StringToFloat(sPart[0]) : StringToInt(sPart[0]);
 	max = StrContains(sPart[1], ".") != -1 ? StringToFloat(sPart[1]) : StringToInt(sPart[1]);
@@ -499,14 +637,10 @@ stock bool GetStringMinMax(const char[] buffer, any& min, any& max, const char[]
 	if (clamp)
 	{
 		if (min > max)
-		{
 			min = max;
-		}
 
 		if (max < min)
-		{
 			max = min;
-		}
 	}
 
 	return true;
@@ -533,9 +667,7 @@ stock int GetRandomCharacterString(char[] buffer, int size, int length = 32, con
 	size--;
 
 	if (chrs[0] != '\0')
-	{
 		len = strlen(chrs) - 1;
-	}
 
 	int n = 0;
 	while (n < length && n < size)
@@ -557,103 +689,25 @@ stock int GetRandomCharacterString(char[] buffer, int size, int length = 32, con
 	buffer[length] = '\0';
 }
 
-
-stock int[] GetConVarColor(ConVar convar)
-{
-	int colors[4] = {255, 255, 255, 255};
-
-	char sBuffer[128];
-	convar.GetString(sBuffer, sizeof(sBuffer));
-
-	if (strlen(sBuffer) == 0)
-	{
-		return colors;
-	}
-
-	char sPart[4][6];
-	int iReturned = ExplodeString(sBuffer, StrContains(sBuffer, ", ") != -1 ? ", " : " ", sPart, 4, 6);
-
-	for (int i = 0; i < iReturned; i++)
-	{
-		colors[i] = StringToInt(sPart[i]);
-	}
-
-	return colors;
-}
-
-stock float[] GetConVarVector(ConVar convar)
-{
-	float vectors[3] = {0.0, 0.0, 0.0};
-
-	char sBuffer[128];
-	convar.GetString(sBuffer, sizeof(sBuffer));
-
-	if (strlen(sBuffer) == 0)
-	{
-		return vectors;
-	}
-
-	char sPart[3][12];
-	int iReturned = ExplodeString(sBuffer, StrContains(sBuffer, ", ") != -1 ? ", " : " ", sPart, 3, 12);
-
-	for (int i = 0; i < iReturned; i++)
-	{
-		vectors[i] = StringToFloat(sPart[i]);
-	}
-
-	return vectors;
-}
-
-stock float[] GetConVar2DVector(ConVar convar)
-{
-	float vectors[2] = {0.0, 0.0};
-
-	char sBuffer[128];
-	convar.GetString(sBuffer, sizeof(sBuffer));
-
-	if (strlen(sBuffer) == 0)
-	{
-		return vectors;
-	}
-
-	char sPart[2][12];
-	int iReturned = ExplodeString(sBuffer, StrContains(sBuffer, ", ") != -1 ? ", " : " ", sPart, 2, 12);
-
-	for (int i = 0; i < iReturned; i++)
-	{
-		vectors[i] = StringToFloat(sPart[i]);
-	}
-
-	return vectors;
-}
-
 stock void FillArrayToValue(any[] array, int size, any value, int start = 0)
 {
 	if (start < 0)
-	{
 		start = 0;
-	}
 
 	for (int i = start; i < size; i++)
-	{
 		array[i] = value;
-	}
 }
 
 stock void CopyArrayToArray(const any[] array, any[] newArray, int size)
 {
 	for (int i = 0; i < size; i++)
-	{
 		newArray[i] = array[i];
-	}
 }
 
-stock bool GetClientLookPosition(int client, float fLookpoint[3], float distance = -35.0)
+stock bool GetClientCrosshairOrigin(int client, float pOrigin[3], bool filter_players = true, float distance = -35.0)
 {
-	if (client == 0 || client > MaxClients || !IsClientConnected(client) || !IsClientInGame(client))
-	{
+	if (client == 0 || client > MaxClients || !IsClientInGame(client))
 		return false;
-	}
 
 	float vOrigin[3];
 	GetClientEyePosition(client,vOrigin);
@@ -661,7 +715,7 @@ stock bool GetClientLookPosition(int client, float fLookpoint[3], float distance
 	float vAngles[3];
 	GetClientEyeAngles(client, vAngles);
 
-	Handle trace = TR_TraceRayFilterEx(vOrigin, vAngles, MASK_SHOT, RayType_Infinite, TraceEntityFilterPlayer);
+	Handle trace = TR_TraceRayFilterEx(vOrigin, vAngles, MASK_SHOT, RayType_Infinite, filter_players ? TraceEntityFilterPlayer : TraceEntityFilterNone, client);
 	bool bReturn = TR_DidHit(trace);
 
 	if (bReturn)
@@ -672,18 +726,23 @@ stock bool GetClientLookPosition(int client, float fLookpoint[3], float distance
 		float vBuffer[3];
 		GetAngleVectors(vAngles, vBuffer, NULL_VECTOR, NULL_VECTOR);
 
-		fLookpoint[0] = vStart[0] + (vBuffer[0] * distance);
-		fLookpoint[1] = vStart[1] + (vBuffer[1] * distance);
-		fLookpoint[2] = vStart[2] + (vBuffer[2] * distance);
+		pOrigin[0] = vStart[0] + (vBuffer[0] * distance);
+		pOrigin[1] = vStart[1] + (vBuffer[1] * distance);
+		pOrigin[2] = vStart[2] + (vBuffer[2] * distance);
 	}
 
 	delete trace;
 	return bReturn;
 }
 
-public bool TraceEntityFilterPlayer(int entity, int contentsMask)
+public bool TraceEntityFilterPlayer(int entity, int contentsMask, any data)
 {
 	return entity > GetMaxClients() || !entity;
+}
+
+public bool TraceEntityFilterNone(int entity, int contentsMask, any data)
+{
+	return entity != data;
 }
 
 stock int AttachParticle(int entity, const char[] particle, float time = 0.0, const char[] attach = "", float offsets[3] = {0.0, 0.0, 0.0})
@@ -694,31 +753,29 @@ stock int AttachParticle(int entity, const char[] particle, float time = 0.0, co
 	float vecAngles[3];
 	GetEntPropVector(entity, Prop_Send, "m_angRotation", vecAngles);
 
-	int entity_particle = CreateParticle(particle, time, vecPosition, vecAngles, offsets);
+	int entpart = CreateParticle(particle, time, vecPosition, vecAngles, offsets);
 
-	if (IsValidEntity(entity_particle))
+	if (IsValidEntity(entpart))
 	{
-		TeleportEntity(entity_particle, vecPosition, vecAngles, NULL_VECTOR);
+		TeleportEntity(entpart, vecPosition, vecAngles, NULL_VECTOR);
 
 		SetVariantString("!activator");
-		AcceptEntityInput(entity_particle, "SetParent", entity, entity_particle, 0);
+		AcceptEntityInput(entpart, "SetParent", entity, entpart, 0);
 
 		if (strlen(attach) > 0)
 		{
 			SetVariantString(attach);
-			AcceptEntityInput(entity_particle, "SetParentAttachmentMaintainOffset", entity_particle, entity_particle, 0);
+			AcceptEntityInput(entpart, "SetParentAttachmentMaintainOffset", entpart, entpart, 0);
 		}
 	}
 
-	return entity_particle;
+	return entpart;
 }
 
 stock int CreateParticle(const char[] particle, float time = 0.0, float origin[3], float angles[3] = {0.0, 0.0, 0.0}, float offsets[3] = {0.0, 0.0, 0.0})
 {
 	if (strlen(particle) == 0)
-	{
 		return -1;
-	}
 
 	origin[0] += offsets[0];
 	origin[1] += offsets[1];
@@ -737,7 +794,11 @@ stock int CreateParticle(const char[] particle, float time = 0.0, float origin[3
 
 		if (time > 0.0)
 		{
-			SetEntitySelfDestruct(entity, time);
+			char output[64];
+			Format(output, sizeof(output), "OnUser1 !self:kill::%.1f:1", time);
+			SetVariantString(output);
+			AcceptEntityInput(entity, "AddOutput");
+			AcceptEntityInput(entity, "FireUser1");
 		}
 	}
 
@@ -754,7 +815,7 @@ stock void CreateTempParticle(char[] particle, float origin[3], int entity = -1,
 	for (int i = 0; i < GetStringTableNumStrings(tblidx); i++)
 	{
 		ReadStringTable(tblidx, i, tmp, sizeof(tmp));
-		if(StrEqual(tmp, particle, false))
+		if (StrEqual(tmp, particle, false))
 		{
 			stridx = i;
 			break;
@@ -776,13 +837,13 @@ stock void CreateTempParticle(char[] particle, float origin[3], int entity = -1,
 stock void ClearTempParticles(int client)
 {
 	float empty[3];
-	CreateTempParticle("sandwich_fx", client, empty, empty, true);
+	CreateTempParticle("sandwich_fx", client, empty, empty, true);	//sandwich_fx = TF2
 }
 
-stock void SetEntitySelfDestruct(int entity, float fDuration)
+stock void SetEntitySelfDestruct(int entity, float duration)
 {
 	char output[64];
-	Format(output, sizeof(output), "OnUser1 !self:kill::%.1f:1", fDuration);
+	Format(output, sizeof(output), "OnUser1 !self:kill::%.1f:1", duration);
 	SetVariantString(output);
 	AcceptEntityInput(entity, "AddOutput");
 	AcceptEntityInput(entity, "FireUser1");
@@ -808,9 +869,7 @@ stock void SetParent(int iParented, int iChild, const char[] szAttachment = "", 
 			AcceptEntityInput(iChild, "SetParentAttachmentMaintainOffset", iParented, iChild);
 		}
 		else
-		{
 			AcceptEntityInput(iChild, "SetParentAttachment", iParented, iChild);
-		}
 	}
 }
 
@@ -819,7 +878,7 @@ stock bool AreVectorsEqual(const float vec1[3], const float vec2[3])
 	return vec1[0] == vec2[0] && vec1[1] == vec2[1] && vec1[2] == vec2[2];
 }
 
-stock void GetServerIP(char[] sIP, int size, bool show_port = false)
+stock void GetServerIP(char[] buffer, int size, bool showport = false)
 {
 	int ip = FindConVar("hostip").IntValue;
 
@@ -829,39 +888,29 @@ stock void GetServerIP(char[] sIP, int size, bool show_port = false)
 	ips[2] = (ip >> 8) & 0x000000FF;
 	ips[3] = ip & 0x000000FF;
 
-	Format(sIP, size, "%d.%d.%d.%d", ips[0], ips[1], ips[2], ips[3]);
+	Format(buffer, size, "%d.%d.%d.%d", ips[0], ips[1], ips[2], ips[3]);
 
-	if (show_port)
-	{
-		Format(sIP, size, "%s:%d", sIP, FindConVar("hostport").IntValue);
-	}
+	if (showport)
+		Format(buffer, size, "%s:%d", buffer, FindConVar("hostport").IntValue);
 }
 
 stock bool SetPlayerWeaponAmmo(int client, int weapon, int clip = -1, int ammo = -1)
 {
-	if (client == 0 || client > MaxClients || !IsClientConnected(client) || !IsClientInGame(client) || !IsPlayerAlive(client) || weapon == 0 || weapon <= MaxClients || !IsValidEntity(weapon))
-	{
+	if (client == 0 || client > MaxClients || !IsClientInGame(client) || !IsPlayerAlive(client) || weapon == 0 || weapon <= MaxClients || !IsValidEntity(weapon))
 		return false;
-	}
 
 	if (GetClip(weapon) == -1)
-	{
 		clip = -1;
-	}
 
 	if (clip > -1)
-	{
 		SetEntProp(weapon, Prop_Send, "m_iClip1", clip);
-	}
 
 	if (GetAmmo(client, weapon) == -1)
-	{
 		ammo = -1;
-	}
-
+	
 	if (ammo > -1)
 	{
-		int iOffset = FindDataMapInfo(client, "m_iAmmo") + (GetEntProp(weapon, Prop_Data, "m_iPrimaryAmmoType") * 4);
+		int iOffset = FindDataMainfo(client, "m_iAmmo") + (GetEntProp(weapon, Prop_Data, "m_iPrimaryAmmoType") * 4);
 		SetEntData(client, iOffset, ammo, 4, true);
 	}
 
@@ -881,14 +930,10 @@ stock int GetClip(int weapon)
 stock bool SetClip(int weapon, int clip)
 {
 	if (weapon == 0 || weapon <= MaxClients || !IsValidEntity(weapon) || !HasEntProp(weapon, Prop_Data, "m_iClip1"))
-	{
 		return false;
-	}
 
 	if (clip < 0)
-	{
 		clip = 0;
-	}
 
 	SetEntProp(weapon, Prop_Data, "m_iClip1", clip);
 	return true;
@@ -896,10 +941,8 @@ stock bool SetClip(int weapon, int clip)
 
 stock int GetAmmo(int client, int weapon)
 {
-	if (client == 0 || client > MaxClients || !IsClientConnected(client) || !IsClientInGame(client) || !IsPlayerAlive(client) || weapon == 0 || weapon <= MaxClients || !IsValidEntity(weapon) || !HasEntProp(weapon, Prop_Send, "m_iPrimaryAmmoType"))
-	{
+	if (client == 0 || client > MaxClients || !IsClientInGame(client) || !IsPlayerAlive(client) || weapon == 0 || weapon <= MaxClients || !IsValidEntity(weapon) || !HasEntProp(weapon, Prop_Send, "m_iPrimaryAmmoType"))
 		return -1;
-	}
 
 	int iOffset = GetEntProp(weapon, Prop_Send, "m_iPrimaryAmmoType", 1) * 4;
 	int iAmmoTable = FindSendPropInfo("CTFPlayer", "m_iAmmo");
@@ -908,39 +951,30 @@ stock int GetAmmo(int client, int weapon)
 
 stock bool SetAmmo(int client, int weapon, int ammo)
 {
-	if (client == 0 || client > MaxClients || !IsClientConnected(client) || !IsClientInGame(client) || !IsPlayerAlive(client) || weapon == 0 || weapon <= MaxClients || !IsValidEntity(weapon) || !HasEntProp(weapon, Prop_Send, "m_iPrimaryAmmoType"))
-	{
+	if (client == 0 || client > MaxClients || !IsClientInGame(client) || !IsPlayerAlive(client) || weapon == 0 || weapon <= MaxClients || !IsValidEntity(weapon) || !HasEntProp(weapon, Prop_Send, "m_iPrimaryAmmoType"))
 		return false;
-	}
 
 	if (ammo < 0)
-	{
 		ammo = 0;
-	}
-
-	int iOffset = GetEntProp(weapon, Prop_Send, "m_iPrimaryAmmoType", 1) * 4;
-	int iAmmoTable = FindSendPropInfo("CTFPlayer", "m_iAmmo");
-	SetEntData(client, iAmmoTable + iOffset, ammo, 4, true);
+	
+	SetEntData(client, FindSendPropInfo("CTFPlayer", "m_iAmmo") + (GetEntProp(weapon, Prop_Send, "m_iPrimaryAmmoType", 1) * 4), ammo, 4, true);
 	return true;
 }
 
 stock int GetMaxAmmo(int weapon)
 {
 	if (weapon == 0 || weapon <= MaxClients || !IsValidEntity(weapon) || !HasEntProp(weapon, Prop_Send, "m_iPrimaryAmmoCount"))
-	{
 		return -1;
-	}
 
 	return GetEntProp(weapon, Prop_Send, "m_iPrimaryAmmoCount");
 }
 
-stock bool KillTimerSafe(Handle& timer)
+stock bool KillTimerSafe(Handle &timer)
 {
 	if (timer != null)
 	{
 		KillTimer(timer);
 		timer = null;
-
 		return true;
 	}
 
@@ -949,10 +983,8 @@ stock bool KillTimerSafe(Handle& timer)
 
 stock int GetActiveWeapon(int client)
 {
-	if (client == 0 || client > MaxClients || !IsClientConnected(client) || !IsClientInGame(client) || !IsPlayerAlive(client) || !HasEntProp(client, Prop_Send, "m_hActiveWeapon"))
-	{
+	if (client == 0 || client > MaxClients || !IsClientInGame(client) || !IsPlayerAlive(client) || !HasEntProp(client, Prop_Send, "m_hActiveWeapon"))
 		return 0;
-	}
 
 	return GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
 }
@@ -965,9 +997,7 @@ stock int GetRandomClient(bool ingame = true, bool alive = false, bool fake = fa
 	for (int i = 1; i <= MaxClients; i++)
 	{
 		if (ingame && !IsClientInGame(i) || alive && !IsPlayerAlive(i) || !fake && IsFakeClient(i) || team > 0 && team != GetClientTeam(i))
-		{
 			continue;
-		}
 
 		clients[amount++] = i;
 	}
@@ -977,7 +1007,7 @@ stock int GetRandomClient(bool ingame = true, bool alive = false, bool fake = fa
 
 stock void SQL_VoidQueryF(Database& database, DBPriority priority = DBPrio_Normal, const char[] format, any ...)
 {
-	char query[MAX_QUERY_LENGTH];
+	char query[8192];
 	VFormat(query, sizeof(query), format, 4);
 
 	SQL_VoidQuery(database, query, priority);
@@ -997,7 +1027,7 @@ public void TQuery_Void(Database owner, DBResultSet hndl, const char[] error, Da
 	{
 		data.Reset();
 
-		char sQuery[MAX_QUERY_LENGTH];
+		char sQuery[8192];
 		data.ReadString(sQuery, sizeof(sQuery));
 
 		LogError("Error executing void query: %s", error);
@@ -1009,69 +1039,39 @@ public void TQuery_Void(Database owner, DBResultSet hndl, const char[] error, Da
 
 stock void SQL_TQueryF(Database& database, SQLQueryCallback callback, any data, DBPriority priority = DBPrio_Normal, const char[] format, any ...)
 {
-	char query[MAX_QUERY_LENGTH];
+	char query[8192];
 	VFormat(query, sizeof(query), format, 6);
 
 	database.Query(callback, query, data, priority);
 }
 
-//Pelipoika wrote this.
-stock bool GetClientAbsPosition(int client, float origin[3])
-{
-	if (client == 0 || client > MaxClients || !IsClientConnected(client) || !IsClientInGame(client) || !IsPlayerAlive(client))
-	{
-		return false;
-	}
-
-	GetClientAbsOrigin(client, origin);
-
-	float target_velocity[3];
-	GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", target_velocity);
-
-	float correct = 0.0;
-
-	correct += GetClientLatency(client, NetFlow_Outgoing);	// * 2
-
-	int lerpTicks = RoundToFloor(0.5 + GetEntPropFloat(client, Prop_Send, "m_fLerpTime") / GetTickInterval());
-
-	correct += (GetTickInterval() * lerpTicks);
-
-	float sv_unlag = FindConVar("sv_maxunlag").FloatValue;
-	correct = (correct > sv_unlag ? sv_unlag : (correct < 0.0 ? 0.0 : correct));
-
-	int targettick = GetEntProp(client, Prop_Send, "m_nSimulationTick") - lerpTicks;	//m_nTickBase
-
-	float deltaTime = correct - (GetTickInterval() * (GetGameTickCount() - targettick));
-
-	if (FloatAbs(deltaTime) > 0.2)
-	{
-		targettick = GetGameTickCount() - (RoundToFloor(0.5 + correct / GetTickInterval()));
-	}
-
-	ScaleVector(target_velocity, correct);
-	SubtractVectors(origin, target_velocity, origin);
-
-	return true;
-}
-
 stock int GetClientActiveSlot(int client)
 {
-	return GetWeaponSlot(client, GetActiveWeapon(client));
+	if (client == 0 || client > MaxClients || !IsClientInGame(client) || !IsPlayerAlive(client) || weapon == 0 || weapon < MaxClients || !IsValidEntity(weapon))
+		return -1;
+	
+	int weapon = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
+	
+	for (int i = 0; i < 5; i++)
+	{
+		if (GetPlayerWeaponSlot(client, i) != weapon)
+			continue;
+
+		return i;
+	}
+
+	return -1;
 }
 
 stock int GetWeaponSlot(int client, int weapon)
 {
-	if (client == 0 || client > MaxClients || !IsClientConnected(client) || !IsClientInGame(client) || !IsPlayerAlive(client) || weapon == 0 || weapon < MaxClients || !IsValidEntity(weapon))
-	{
+	if (client == 0 || client > MaxClients || !IsClientInGame(client) || !IsPlayerAlive(client) || weapon == 0 || weapon < MaxClients || !IsValidEntity(weapon))
 		return -1;
-	}
 
 	for (int i = 0; i < 5; i++)
 	{
 		if (GetPlayerWeaponSlot(client, i) != weapon)
-		{
 			continue;
-		}
 
 		return i;
 	}
@@ -1082,19 +1082,15 @@ stock int GetWeaponSlot(int client, int weapon)
 stock bool ShowSyncHudTextAll(Handle& sync, const char[] format, any ...)
 {
 	if (sync == null || strlen(format) == 0)
-	{
 		return false;
-	}
 
 	char buffer[255];
 	VFormat(buffer, sizeof(buffer), format, 3);
 
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		if (!IsClientConnected(i) || !IsClientInGame(i) || IsFakeClient(i))
-		{
+		if (!IsClientInGame(i) || IsFakeClient(i))
 			continue;
-		}
 
 		ShowSyncHudText(i, sync, buffer);
 	}
@@ -1105,19 +1101,15 @@ stock bool ShowSyncHudTextAll(Handle& sync, const char[] format, any ...)
 stock bool ShowHudTextAll(int channel, const char[] format, any ...)
 {
 	if (channel <= 0 || channel > 6 || strlen(format) == 0)
-	{
 		return false;
-	}
 
 	char buffer[255];
 	VFormat(buffer, sizeof(buffer), format, 3);
 
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		if (!IsClientConnected(i) || !IsClientInGame(i) || IsFakeClient(i))
-		{
+		if (!IsClientInGame(i) || IsFakeClient(i))
 			continue;
-		}
 
 		ShowHudText(i, channel, buffer);
 	}
@@ -1129,10 +1121,8 @@ stock void ClearSyncHudAll(Handle& sync)
 {
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		if (!IsClientConnected(i) || !IsClientInGame(i) || IsFakeClient(i))
-		{
+		if (!IsClientInGame(i) || IsFakeClient(i))
 			continue;
-		}
 
 		ClearSyncHud(i, sync);
 	}
@@ -1140,21 +1130,30 @@ stock void ClearSyncHudAll(Handle& sync)
 
 stock bool ChangeClientTeam_Alive(int client, int team)
 {
-	if (client == 0 || client > MaxClients || !IsClientConnected(client) || !IsClientInGame(client) || !IsPlayerAlive(client) || team < 2 || team > 3)
-	{
+	if (client == 0 || client > MaxClients || !IsClientInGame(client) || !IsPlayerAlive(client) || team < 2 || team > 3)
 		return false;
-	}
 
 	int lifestate = GetEntProp(client, Prop_Send, "m_lifeState");
 	SetEntProp(client, Prop_Send, "m_lifeState", 2);
 	ChangeClientTeam(client, team);
 	SetEntProp(client, Prop_Send, "m_lifeState", lifestate);
+	
 	return true;
 }
 
 stock int GetTotalAliveCount()
 {
-	return (GetTeamAliveClientCount(2) + GetTeamAliveClientCount(3));
+	int amount;
+
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (!IsClientInGame(i) || !IsPlayerAlive(i))
+			continue;
+
+		amount++;
+	}
+
+	return amount;
 }
 
 stock int GetTeamAliveClientCount(int team)
@@ -1163,10 +1162,8 @@ stock int GetTeamAliveClientCount(int team)
 
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		if (!IsClientConnected(i) || !IsClientInGame(i) || !IsPlayerAlive(i) || GetClientTeam(i) != team)
-		{
+		if (!IsClientInGame(i) || !IsPlayerAlive(i) || GetClientTeam(i) != team)
 			continue;
-		}
 
 		amount++;
 	}
@@ -1184,17 +1181,13 @@ stock int GetClientsNearEntity(int entity, float distance = 1000.0, int team = 0
 	float vecOrigin2[3];
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		if (!IsClientConnected(i) || !IsClientInGame(i) || !IsPlayerAlive(i) || (team > 0 && team != GetClientTeam(i)) || (!fake && IsFakeClient(i)))
-		{
+		if (!IsClientInGame(i) || !IsPlayerAlive(i) || (team > 0 && team != GetClientTeam(i)) || (!fake && IsFakeClient(i)))
 			continue;
-		}
 
 		GetClientAbsOrigin(i, vecOrigin2);
 
 		if (GetVectorDistance(vecOrigin1, vecOrigin2) > distance)
-		{
 			continue;
-		}
 
 		count++;
 	}
@@ -1205,14 +1198,10 @@ stock int GetClientsNearEntity(int entity, float distance = 1000.0, int team = 0
 stock any ClampCell(any value, any min, any max)
 {
 	if (value < min)
-	{
 		value = min;
-	}
 
 	if (value > max)
-	{
 		value = max;
-	}
 
 	return value;
 }
@@ -1259,9 +1248,7 @@ stock void PrintTopTextAll(int color[4], const char[] format, any ...)
 	for (int i = 1; i <= MaxClients; i++)
 	{
 		if (IsClientInGame(i) && !IsFakeClient(i))
-		{
 			PrintTopText(i, color, message);
-		}
 	}
 }
 
@@ -1286,45 +1273,35 @@ stock bool IsValidEntityRef(int ref)
 }
 
 //WARNING: Don't call this inside of the 'player_death' event, it'll crash. (May also apply to some OnTakeDamage hooks as well)
-stock void DamageArea(float origin[3], float distance = 500.0, float damage = 500.0, int& attacker = 0, int inflictor = 0, int team = 0, int damagetype = DMG_GENERIC, int weapon = -1, float damageforce[3] = NULL_VECTOR)
+stock void DamageArea(float origin[3], float distance = 500.0, float damage = 500.0, int attacker = 0, int inflictor = 0, int team = 0, int damagetype = DMG_GENERIC, int weapon = -1, float damageforce[3] = NULL_VECTOR)
 {
 	if (distance <= 0.0 || damage <= 0.0)
-	{
 		return;
-	}
 
 	float vecOrigin[3];
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		if (!IsClientConnected(i) || !IsClientInGame(i) || !IsPlayerAlive(i) || (team > 0 && team != GetClientTeam(i)) || (attacker > 0 && i == attacker))
-		{
+		if (!IsClientInGame(i) || !IsPlayerAlive(i) || (team > 0 && team != GetClientTeam(i)) || (attacker > 0 && i == attacker))
 			continue;
-		}
 
 		GetClientAbsOrigin(i, vecOrigin);
 
 		if (GetVectorDistance(origin, vecOrigin) > distance)
-		{
 			continue;
-		}
 
 		SDKHooks_TakeDamage(i, inflictor, attacker, damage, damagetype, weapon, damageforce, origin);
 	}
 
-	int entity = INVALID_ENT_INDEX;
-	while ((entity = FindEntityByClassname(entity, "*")) != INVALID_ENT_INDEX)
+	int entity = -1;
+	while ((entity = FindEntityByClassname(entity, "*")) != -1)
 	{
 		if (!HasEntProp(entity, Prop_Send, "m_vecOrigin") || attacker > 0 && attacker == entity)
-		{
 			continue;
-		}
 
 		GetEntPropVector(entity, Prop_Send, "m_vecOrigin", vecOrigin);
 
 		if (GetVectorDistance(origin, vecOrigin) > distance)
-		{
 			continue;
-		}
 
 		SDKHooks_TakeDamage(entity, inflictor, attacker, damage, damagetype, weapon, damageforce, origin);
 	}
@@ -1335,9 +1312,7 @@ stock void ScreenFadeAll(int duration = 4, int hold_time = 4, int flag = FFADE_I
 	for (int i = 1; i <= MaxClients; i++)
 	{
 		if (IsClientInGame(i) && !IsFakeClient(i))
-		{
 			ScreenFade(i, duration, hold_time, flag, colors);
-		}
 	}
 }
 
@@ -1346,9 +1321,7 @@ stock bool ScreenFade(int client, int duration = 4, int hold_time = 4, int flag 
 	Handle userMessage = StartMessageOne("Fade", client, (reliable ? USERMSG_RELIABLE : 0));
 
 	if (userMessage == null)
-	{
 		return false;
-	}
 
 	if (GetFeatureStatus(FeatureType_Native, "GetUserMessageType") == FeatureStatus_Available && GetUserMessageType() == UM_Protobuf)
 	{
@@ -1378,58 +1351,48 @@ stock bool ScreenShakeAll(int command = SHAKE_START, float amplitude = 50.0, flo
 	for (int i = 1; i <= MaxClients; i++)
 	{
 		if (IsClientInGame(i) && !IsFakeClient(i))
-		{
 			ScreenShake(i, command, amplitude, frequency, duration);
-		}
 	}
 }
 
 stock bool ScreenShake(int client, int command = SHAKE_START, float amplitude = 50.0, float frequency = 150.0, float duration = 3.0)
 {
-	if (command == SHAKE_STOP)
-	{
-		amplitude = 0.0;
-	}
-	else if (amplitude <= 0.0)
-	{
+	if (amplitude <= 0.0)
 		return false;
-	}
+		
+	if (command == SHAKE_STOP)
+		amplitude = 0.0;
 
 	Handle userMessage = StartMessageOne("Shake", client);
 
 	if (userMessage == null)
-	{
 		return false;
-	}
 
 	if (GetFeatureStatus(FeatureType_Native, "GetUserMessageType") == FeatureStatus_Available && GetUserMessageType() == UM_Protobuf)
 	{
-		PbSetInt(userMessage,   "command",         command);
+		PbSetInt(userMessage, "command", command);
 		PbSetFloat(userMessage, "local_amplitude", amplitude);
-		PbSetFloat(userMessage, "frequency",       frequency);
-		PbSetFloat(userMessage, "duration",        duration);
+		PbSetFloat(userMessage, "frequency", frequency);
+		PbSetFloat(userMessage, "duration", duration);
 	}
 	else
 	{
-		BfWriteByte(userMessage,	command);	// Shake Command
-		BfWriteFloat(userMessage,	amplitude);	// shake magnitude/amplitude
-		BfWriteFloat(userMessage,	frequency);	// shake noise frequency
-		BfWriteFloat(userMessage,	duration);	// shake lasts this long
+		BfWriteByte(userMessage, command);		// Shake Command
+		BfWriteFloat(userMessage, amplitude);	// shake magnitude/amplitude
+		BfWriteFloat(userMessage, frequency);	// shake noise frequency
+		BfWriteFloat(userMessage, duration);	// shake lasts this long
 	}
 
 	EndMessage();
-
 	return true;
 }
 
-stock void AnglesToVelocity(float vAngles[3], float fScale, float vOut[3])
+stock void AnglesToVelocity(const float pAngles[3], float pScale, float pResults[3])
 {
-	float vDirection[3];
-	GetAngleVectors(vAngles, vDirection, NULL_VECTOR, NULL_VECTOR);
-
-	ScaleVector(vDirection, fScale);
-
-	vOut = vDirection;
+	float vecDir[3];
+	GetAngleVectors(pAngles, vecDir, NULL_VECTOR, NULL_VECTOR);
+	ScaleVector(vecDir, pScale);
+	pResults[0] = vecDir[0]; pResults[1] = vecDir[1]; pResults[2] = vecDir[2];
 }
 
 stock void String_ToLower(const char[] input, char[] output, int size)
@@ -1462,10 +1425,8 @@ stock void String_ToUpper(const char[] input, char[] output, int size)
 
 stock void ShowOverlay(int client, const char[] overlay, float duration = 0.0)
 {
-	if (client == 0)
-	{
+	if (client == 0 || client > MaxClients)
 		return;
-	}
 
 	int iFlags = GetCommandFlags("r_screenoverlay");
 	SetCommandFlags("r_screenoverlay", iFlags & ~FCVAR_CHEAT);
@@ -1473,22 +1434,18 @@ stock void ShowOverlay(int client, const char[] overlay, float duration = 0.0)
 	SetCommandFlags("r_screenoverlay", iFlags);
 
 	if (duration > 0.0)
-	{
-		CreateTimer(duration, Timer_ResetOverlay938217591327590, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
-	}
+		CreateTimer(duration, __Timer_ResetOverlay, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
 }
 
-public Action Timer_ResetOverlay938217591327590(Handle timer, any data)
+public Action __Timer_ResetOverlay(Handle timer, any data)
 {
 	ShowOverlay(GetClientOfUserId(data), "0", 0.0);
 }
 
 stock void ClearOverlay(int client)
 {
-	if (client == 0)
-	{
+	if (client == 0 || client > MaxClients)
 		return;
-	}
 
 	ShowOverlay(client, "0");
 }
@@ -1518,16 +1475,14 @@ stock void EncodeURL(const char[] sString, char[] sResult, int iLen)
 		{
 			sResult[to++] = '+';
 		}
-		else if((c < '0' && c != '-' && c != '.') ||
-		(c < 'A' && c > '9') ||
-		(c > 'Z' && c < 'a' && c != '_') ||
-		(c > 'z'))
+		else if((c < '0' && c != '-' && c != '.') || (c < 'A' && c > '9') || (c > 'Z' && c < 'a' && c != '_') || (c > 'z'))
 		{
 			if((to + 3) > iLen)
 			{
 				sResult[to] = 0;
 				break;
 			}
+			
 			sResult[to++] = '%';
 			sResult[to++] = sHexTable[c >> 4];
 			sResult[to++] = sHexTable[c & 15];
@@ -1548,17 +1503,13 @@ stock float GetPlayerSpeed(int client)
 
 stock bool GetClientSteamID(int client, char[] buffer, int size)
 {
-	if (!client == 0)
-	{
+	if (client == 0 || client > MaxClients)
 		return false;
-	}
 
 	if (GetClientAuthId(client, AuthId_Steam2, buffer, size))
 	{
 		if (GetEngineVersion() == Engine_CSGO)
-		{
 			ReplaceString(buffer, size, "STEAM_0", "STEAM_1");
-		}
 
 		return true;
 	}
@@ -1569,17 +1520,13 @@ stock bool GetClientSteamID(int client, char[] buffer, int size)
 stock bool PushPlayerFromPoint(int client, float point[3], float magnitude = 50.0, float radius = 0.0)
 {
 	if (magnitude <= 0.0)
-	{
 		return false;
-	}
 
 	float vecOrigin[3];
 	GetClientAbsOrigin(client, vecOrigin);
 
 	if (radius > 0.0 && GetVectorDistance(point, vecOrigin) > radius)
-	{
 		return false;
-	}
 
 	float vector[3];
 	MakeVectorFromPoints(point, vecOrigin, vector);
@@ -1587,13 +1534,8 @@ stock bool PushPlayerFromPoint(int client, float point[3], float magnitude = 50.
 	NormalizeVector(vector, vector);
 	ScaleVector(vector, magnitude);
 
-	if (GetEntityFlags(client) & FL_ONGROUND)
-	{
-		if (vector[2] < 251.0)
-		{
-			vector[2] = 251.0;
-		}
-	}
+	if (GetEntityFlags(client) & FL_ONGROUND && vector[2] < 251.0)
+		vector[2] = 251.0;
 
 	TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, vector);
 	return true;
@@ -1602,24 +1544,18 @@ stock bool PushPlayerFromPoint(int client, float point[3], float magnitude = 50.
 stock bool PushAllPlayersFromPoint(float point[3], float magnitude = 50.0, float radius = 0.0, int team = 0, int attacker = 0)
 {
 	if (magnitude <= 0.0)
-	{
 		return false;
-	}
 
 	float vecOrigin[3]; float vector[3];
 	for (int i = 1; i <= MaxClients; i++)
 	{
 		if (!IsClientInGame(i) || !IsPlayerAlive(i) || (team > 0 && team != GetClientTeam(i)) || (attacker > 0 && i == attacker))
-		{
 			continue;
-		}
 
 		GetClientAbsOrigin(i, vecOrigin);
 
 		if (radius > 0.0 && GetVectorDistance(point, vecOrigin) > radius)
-		{
 			continue;
-		}
 
 		MakeVectorFromPoints(point, vecOrigin, vector);
 
@@ -1627,9 +1563,7 @@ stock bool PushAllPlayersFromPoint(float point[3], float magnitude = 50.0, float
 		ScaleVector(vector, magnitude);
 
 		if (GetEntityFlags(i) & FL_ONGROUND && vector[2] < 251.0)
-		{
 			vector[2] = 251.0;
-		}
 
 		TeleportEntity(i, NULL_VECTOR, NULL_VECTOR, vector);
 	}
@@ -1670,22 +1604,20 @@ stock void SpeakResponseConcept(int client, const char[] concept, const char[] c
 	AcceptEntityInput(client, "SpeakResponseConcept");
 
 	if (hascontext)
-	{
 		AcceptEntityInput(client, "ClearContext");
-	}
 }
 
 stock void SpeakResponseConceptDelayed(int client, const char[] concept, float delayed = 0.0, const char[] context = "", const char[] class = "")
 {
 	DataPack hPack;
-	CreateDataTimer(ClampCell(delayed, 0.0, 999999.0), Timer_DelayClientConcept28305820358023532, hPack, TIMER_FLAG_NO_MAPCHANGE);
+	CreateDataTimer(ClampCell(delayed, 0.0, 999999.0), __Timer_DelayClientConcept, hPack, TIMER_FLAG_NO_MAPCHANGE);
 	hPack.WriteCell(GetClientUserId(client));
 	hPack.WriteString(concept);
 	hPack.WriteString(context);
 	hPack.WriteString(class);
 }
 
-public Action Timer_DelayClientConcept28305820358023532(Handle timer, DataPack data)
+public Action __Timer_DelayClientConcept(Handle timer, DataPack data)
 {
 	data.Reset();
 	int client = GetClientOfUserId(data.ReadCell());
@@ -1700,9 +1632,7 @@ public Action Timer_DelayClientConcept28305820358023532(Handle timer, DataPack d
 	data.ReadString(sClass, sizeof(sClass));
 
 	if (client > 0 && IsClientInGame(client) && IsPlayerAlive(client))
-	{
 		SpeakResponseConcept(client, sConcept, sContext, sClass);
-	}
 }
 
 stock void SpeakResponseConceptAll(const char[] concept, const char[] context = "", const char[] class = "")
@@ -1710,22 +1640,20 @@ stock void SpeakResponseConceptAll(const char[] concept, const char[] context = 
 	for (int i = 1; i <= MaxClients; i++)
 	{
 		if (IsClientInGame(i) && IsPlayerAlive(i))
-		{
 			SpeakResponseConcept(i, concept, context, class);
-		}
 	}
 }
 
 stock void SpeakResponseConceptAllDelayed(const char[] concept, float delay = 0.0, const char[] context = "", const char[] class = "")
 {
 	DataPack hPack;
-	CreateDataTimer(ClampCell(delay, 0.0, 999999.0), Timer_DelayAllConcept28305820358023532, hPack, TIMER_FLAG_NO_MAPCHANGE);
+	CreateDataTimer(ClampCell(delay, 0.0, 999999.0), __Timer_DelayAllConcept, hPack, TIMER_FLAG_NO_MAPCHANGE);
 	hPack.WriteString(concept);
 	hPack.WriteString(context);
 	hPack.WriteString(class);
 }
 
-public Action Timer_DelayAllConcept28305820358023532(Handle timer, DataPack data)
+public Action __Timer_DelayAllConcept(Handle timer, DataPack data)
 {
 	data.Reset();
 
@@ -1764,21 +1692,10 @@ stock bool GetGroundCoordinates(int entity, float buffer[3], float distance = 0.
 	if (TR_DidHit(trace))
 	{
 		TR_GetEndPosition(buffer, trace);
-
-		if (distance > 0.0 && vecOrigin[2] - buffer[2] > distance)
-		{
-			buffer[0] += offset[0];
-			buffer[1] += offset[1];
-			buffer[2] += offset[2];
-
-			return true;
-		}
-
-		buffer[0] += offset[0];
-		buffer[1] += offset[1];
-		buffer[2] += offset[2];
-
-		return false;
+		delete trace;
+		
+		buffer[0] += offset[0]; buffer[1] += offset[1]; buffer[2] += offset[2];
+		return (distance > 0.0 && vecOrigin[2] - buffer[2] > distance);
 	}
 
 	delete trace;
@@ -1796,21 +1713,10 @@ stock bool GetCeilingCoordinates(int entity, float buffer[3], float distance = 0
 	if (TR_DidHit(trace))
 	{
 		TR_GetEndPosition(buffer, trace);
-
-		if (distance > 0.0 && vecOrigin[2] - buffer[2] > distance)
-		{
-			buffer[0] += offset[0];
-			buffer[1] += offset[1];
-			buffer[2] += offset[2];
-
-			return true;
-		}
-
-		buffer[0] += offset[0];
-		buffer[1] += offset[1];
-		buffer[2] += offset[2];
-
-		return false;
+		delete trace;
+		
+		buffer[0] += offset[0]; buffer[1] += offset[1]; buffer[2] += offset[2];
+		return (distance > 0.0 && vecOrigin[2] - buffer[2] > distance);
 	}
 
 	delete trace;
@@ -1851,9 +1757,7 @@ stock bool IsClientNearEntityViaName(int client, const char[] name, const char[]
 			GetEntPropVector(entity, Prop_Data, "m_vecAbsOrigin", vecOrigin);
 
 			if (GetVectorDistance(vecClientOrigin, vecOrigin) <= distance)
-			{
 				return true;
-			}
 		}
 	}
 
@@ -1878,37 +1782,6 @@ stock void VectorAddRotatedOffset(const float angle[3], float buffer[3], const f
     AddVectors(buffer, vecAdd, buffer);
 }
 
-/* MAH BOI POIKA */
-stock void EquipWeaponSlot(int client, int slot)
-{
-	int iWeapon = GetPlayerWeaponSlot(client, slot);
-	if(IsValidEntity(iWeapon))
-		EquipWeapon(client, iWeapon);
-}
-
-stock void EquipWeapon(int client, int weapon)
-{
-	char class[64];
-	GetEntityClassname(weapon, class, sizeof(class));
-
-	FakeClientCommand(client, "use %s", class);
-}
-/* */
-
-stock void UnsetCheatVar(ConVar convar)
-{
-	int flags = convar.Flags;
-	flags &= ~FCVAR_CHEAT;
-	convar.Flags = flags;
-}
-
-stock void SetCheatVar(ConVar convar)
-{
-	int flags = convar.Flags;
-	flags |= FCVAR_CHEAT;
-	convar.Flags = flags;
-}
-
 stock void GetMapName(char[] buffer, int size)
 {
 	GetCurrentMap(buffer, size);
@@ -1918,9 +1791,7 @@ stock void GetMapName(char[] buffer, int size)
 stock bool CreateFile(const char[] buffer)
 {
 	if (strlen(buffer) == 0)
-	{
 		return false;
-	}
 
 	char path[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, path, sizeof(path), buffer);
@@ -1947,172 +1818,20 @@ stock bool HasEntName(int entity, const char[] buffer, bool case_sensitive = fal
 	return StrEqual(buffer, sName, case_sensitive);
 }
 
-/*---------------------------------------------------------*/
-//SECTIONS
-/*---------------------------------------------------------*/
-
-/*---------------------------------------------------------*/
-//Menu stocks by Kisslick
-/*---------------------------------------------------------*/
-
-stock void PushMenuString(Menu hndl, const char[] id, const char[] data)
+stock int CreateProp(const char[] model, float origin[3], float angles[3] = {0.0, 0.0, 0.0}, bool solid = true)
 {
-	hndl.AddItem(id, data, ITEMDRAW_IGNORE);
-}
-
-stock void PushMenuCell(Menu hndl, const char[] id, int data)
-{
-	char DataString[64];
-	IntToString(data, DataString, sizeof(DataString));
-	hndl.AddItem(id, DataString, ITEMDRAW_IGNORE);
-}
-
-stock void PushMenuFloat(Menu hndl, const char[] id, float data)
-{
-	char DataString[64];
-	FloatToString(data, DataString, sizeof(DataString));
-	hndl.AddItem(id, DataString, ITEMDRAW_IGNORE);
-}
-
-stock void PushMenuBool(Menu hndl, const char[] id, bool data)
-{
-	char DataString[64];
-	IntToString(view_as<int>(data), DataString, sizeof(DataString));
-	hndl.AddItem(id, DataString, ITEMDRAW_IGNORE);
-}
-
-stock bool GetMenuString(Menu hndl, const char[] id, char[] Buffer, int size)
-{
-	int ItemCount = hndl.ItemCount;
-	char info[64]; char data[64];
-
-	for (int i = 0; i < ItemCount; i++) {
-		if (hndl.GetItem(i, info, sizeof(info), _, data, sizeof(data)))
-		{
-			if (StrEqual(info, id)) {
-				strcopy(Buffer, size, data);
-				return true;
-			}
-		}
-	}
-	return false;
-}
-
-stock int GetMenuCell(Menu hndl, const char[] id, int DefaultValue = 0)
-{
-	int ItemCount = hndl.ItemCount;
-	char info[64]; char data[64];
-
-	for (int i = 0; i < ItemCount; i++) {
-		if (hndl.GetItem(i, info, sizeof(info), _, data, sizeof(data)))
-		{
-			if (StrEqual(info, id))
-			return StringToInt(data);
-		}
-	}
-	return DefaultValue;
-}
-
-stock float GetMenuFloat(Menu hndl, const char[] id, float DefaultValue = 0.0)
-{
-	int ItemCount = hndl.ItemCount;
-	char info[64]; char data[64];
-
-	for (int i = 0; i < ItemCount; i++) {
-		if (hndl.GetItem(i, info, sizeof(info), _, data, sizeof(data)))
-		{
-			if (StrEqual(info, id))
-			return StringToFloat(data);
-		}
-	}
-	return DefaultValue;
-}
-
-stock bool GetMenuBool(Menu hndl, const char[] id, bool DefaultValue = false)
-{
-	int ItemCount = hndl.ItemCount;
-	char info[64]; char data[64];
-
-	for (int i = 0; i < ItemCount; i++) {
-		if (hndl.GetItem(i, info, sizeof(info), _, data, sizeof(data)))
-		{
-			if (StrEqual(info, id))
-			return view_as<bool>(StringToInt(data));
-		}
-	}
-	return DefaultValue;
-}
-
-stock void CopyMenuAny(Menu source, Menu dest, const char[] id)
-{
-	int ItemCount = source.ItemCount;
-	char info[64]; char data[64];
-
-	for (int i = 0; i < ItemCount; i++) {
-		if (source.GetItem(i, info, sizeof(info), _, data, sizeof(data)))
-		{
-			if (StrEqual(info, id))
-			dest.AddItem(id, data, ITEMDRAW_IGNORE);
-		}
-	}
-}
-
-stock bool AddMenuItemFormat(Menu& menu, const char[] info, int style = ITEMDRAW_DEFAULT, const char[] format, any ...)
-{
-	char display[128];
-	VFormat(display, sizeof(display), format, 5);
-
-	return menu.AddItem(info, display, style);
-}
-
-stock int Util_GetMaxHealth(int client)
-{
-	return GetEngineVersion() == Engine_TF2 ? TF2_GetMaxHealth(client) : GetEntProp(client, Prop_Data, "m_iMaxHealth");
-}
-
-stock void Util_SetClientHealth(int client, int health)
-{
-	if (GetEngineVersion() == Engine_TF2)
+	int entity = CreateEntityByName("prop_dynamic_override");
+	
+	if (IsValidEntity(entity))
 	{
-		TF2_SetPlayerHealth(client, health);
+		DispatchKeyValue(entity, "model", model);
+		DispatchKeyValue(entity, "solid", solid ? "6" : "0");
+		DispatchKeyValueVector(entity, "origin", origin);
+		DispatchKeyValueVector(entity, "angles", angles);
+		DispatchSpawn(entity);
 	}
-	else
-	{
-		SetEntityHealth(client, ClampCell(health, 1, Util_GetMaxHealth(client)));
-	}
-}
-
-stock void Util_AddClientHealth(int client, int health, float overheal = 1.5, bool additive = false, bool event = true)
-{
-	if (GetEngineVersion() == Engine_TF2)
-	{
-		TF2_AddPlayerHealth(client, health, overheal, additive, event);
-	}
-	else
-	{
-		SetEntityHealth(client, ClampCell((GetClientHealth(client) + health), 1, Util_GetMaxHealth(client)));
-	}
-}
-
-stock void Util_HealArea(float origin[3], float distance = 500.0, int amount = 500,  int team = 0, float overheal = 1.5, bool additive = false, bool event = true)
-{
-	float vecOrigin[3];
-	for (int i = 1; i <= MaxClients; i++)
-	{
-		if (!IsClientConnected(i) || !IsClientInGame(i) || !IsPlayerAlive(i) || (team > 0 && team != GetClientTeam(i)))
-		{
-			continue;
-		}
-
-		GetClientAbsOrigin(i, vecOrigin);
-
-		if (GetVectorDistance(origin, vecOrigin) > distance)
-		{
-			continue;
-		}
-
-		Util_AddClientHealth(i, amount, overheal, additive, event);
-	}
+	
+	return entity;
 }
 
 stock int[] GetNearestPlayers(int entity, int& count, float distance, bool self = false, bool fake_clients = true)
@@ -2126,17 +1845,13 @@ stock int[] GetNearestPlayers(int entity, int& count, float distance, bool self 
 	float vecOrigin2[3];
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		if (!IsClientConnected(i) || !IsClientInGame(i) || !IsPlayerAlive(i) || (!self && i == entity) || (!fake_clients && IsFakeClient(i)))
-		{
+		if (!IsClientInGame(i) || !IsPlayerAlive(i) || (!self && i == entity) || (!fake_clients && IsFakeClient(i)))
 			continue;
-		}
 
 		GetClientAbsOrigin(i, vecOrigin2);
 
 		if (GetVectorDistance(vecOrigin, vecOrigin2) > distance)
-		{
 			continue;
-		}
 
 		clients[count++] = i;
 	}
@@ -2144,91 +1859,305 @@ stock int[] GetNearestPlayers(int entity, int& count, float distance, bool self 
 	return clients;
 }
 
-/*--------------------------------------------------------->*/
-//Model Stocks
-/*--------------------------------------------------------->*/
+//SM9(); has molested this stock at this point. <3
+stock void GetAbsBoundingBox(int ent, float mins[3], float maxs[3], bool half = false)
+{
+    float origin[3];
 
+    GetEntPropVector(ent, Prop_Data, "m_vecAbsOrigin", origin);
+    GetEntPropVector(ent, Prop_Data, "m_vecMins", mins);
+    GetEntPropVector(ent, Prop_Data, "m_vecMaxs", maxs);
+
+    mins[0] += origin[0];
+    mins[1] += origin[1];
+    mins[2] += origin[2];
+    maxs[0] += origin[0];
+    maxs[1] += origin[1];
+
+    if (!half)
+        maxs[2] += origin[2];
+    else
+        maxs[2] = mins[2];
+}
+
+/*---------------------------------------------------------*/
+//SECTIONS
+/*---------------------------------------------------------*/
+
+/*---------------------------------------------------------*/
+//COLLISIONS
+/*---------------------------------------------------------*/
+//Solid Type
+enum SolidTypes
+{
+    SOLID_TYPE_NONE,   	 	// no solid model
+    SOLID_TYPE_BSP,    		// a BSP tree
+    SOLID_TYPE_BBOX,    	// an AABB
+    SOLID_TYPE_OBB,    		// an OBB (not implemented yet)
+    SOLID_TYPE_OBB_YAW,    	// an OBB, constrained so that it can only yaw
+    SOLID_TYPE_CUSTOM,    	// Always call into the entity for tests
+    SOLID_TYPE_VPHYSICS,    // solid vphysics object, get vcollide from the model and collide with that
+    SOLID_TYPE_LAST,
+}
+
+/**
+ * Gets an entity's solid type.
+ *
+ * @param entity	Entity index.
+ * @return			SolidTypes value.
+ * @error			Invalid entity index, or lack of mod compliance.
+ */
+stock SolidTypes GetEntitySolidType(int entity)
+{
+	return view_as<SolidTypes>(GetEntProp(entity, Prop_Data, "m_nSolidType"));
+}
+
+/**
+ * Sets an entity's solid type.
+ *
+ * @param entity	Entity index.
+ * @param group		SolidTypes value.
+ * @error			Invalid entity index, or lack of mod compliance.
+ */
+stock void SetEntitySolidType(int entity, SolidTypes type)
+{
+	SetEntProp(entity, Prop_Data, "m_nSolidType", type);
+}
+
+//Solid Flags
+enum SolidFlags
+{
+    FSOLID_CUSTOMRAYTEST = 0x0001,    		// Ignore solid type + always call into the entity for ray tests
+    FSOLID_CUSTOMBOXTEST = 0x0002,    		// Ignore solid type + always call into the entity for swept box tests
+    FSOLID_NOT_SOLID = 0x0004,    			// Are we currently not solid?
+    FSOLID_TRIGGER = 0x0008,    			// This is something may be collideable but fires touch functions
+											// even when it's not collideable (when the FSOLID_NOT_SOLID flag is set)
+    FSOLID_NOT_STANDABLE = 0x0010,    		// You can't stand on this
+    FSOLID_VOLUME_CONTENTS = 0x0020,    	// Contains volumetric contents (like water)
+    FSOLID_FORCE_WORLD_ALIGNED = 0x0040,	// Forces the collision rep to be world-aligned even if it's SOLID_BSP or SOLID_VPHYSICS
+    FSOLID_USE_TRIGGER_BOUNDS = 0x0080,		// Uses a special trigger bounds separate from the normal OBB
+    FSOLID_ROOT_PARENT_ALIGNED = 0x0100,	// Collisions are defined in root parent's local coordinate space
+    FSOLID_MAX_BITS    = 9
+}
+
+/**
+ * Gets an entity's collision group.
+ *
+ * @param entity	Entity index.
+ * @return			SolidFlags value.
+ * @error			Invalid entity index, or lack of mod compliance.
+ */
+stock SolidFlags GetEntitySolidFlags(int entity)
+{
+	return view_as<SolidFlags>(GetEntProp(entity, Prop_Data, "m_usSolidFlags"));
+}
+
+/**
+ * Sets an entity's collision group.
+ *
+ * @param entity	Entity index.
+ * @param group		SolidFlags value.
+ * @error			Invalid entity index, or lack of mod compliance.
+ */
+stock void SetEntitySolidFlags(int entity, SolidFlags flags)
+{
+	SetEntProp(entity, Prop_Data, "m_usSolidFlags", flags);
+}
+
+//Collision Group
+enum CollisionGroup
+{
+    COLLISION_GROUP_NONE,
+    COLLISION_GROUP_DEBRIS,            	// Collides with nothing but world and static stuff
+    COLLISION_GROUP_DEBRIS_TRIGGER, 	// Same as debris, but hits triggers
+    COLLISION_GROUP_INTERACTIVE_DEBRIS,	// Collides with everything except other interactive debris or debris
+    COLLISION_GROUP_INTERACTIVE,    	// Collides with everything except interactive debris or debris
+    COLLISION_GROUP_PLAYER,
+    COLLISION_GROUP_BREAKABLE_GLASS,
+    COLLISION_GROUP_VEHICLE,
+    COLLISION_GROUP_PLAYER_MOVEMENT,  	// For HL2, same as Collision_Group_Player
+    COLLISION_GROUP_NPC,            	// Generic NPC group
+    COLLISION_GROUP_IN_VEHICLE,        	// for any entity inside a vehicle
+    COLLISION_GROUP_WEAPON,            	// for any weapons that need collision detection
+    COLLISION_GROUP_VEHICLE_CLIP,    	// vehicle clip brush to restrict vehicle movement
+    COLLISION_GROUP_PROJECTILE,        	// Projectiles!
+    COLLISION_GROUP_DOOR_BLOCKER,    	// Blocks entities not permitted to get near moving doors
+    COLLISION_GROUP_PASSABLE_DOOR,    	// Doors that the player shouldn't collide with
+    COLLISION_GROUP_DISSOLVING,        	// Things that are dissolving are in this group
+    COLLISION_GROUP_PUSHAWAY,        	// Nonsolid on client and server, pushaway in player code
+    COLLISION_GROUP_NPC_ACTOR,        	// Used so NPCs in scripts ignore the player.
+}
+
+/**
+ * Gets an entity's collision group.
+ *
+ * @param entity	Entity index.
+ * @return			CollisionGroup value.
+ * @error			Invalid entity index, or lack of mod compliance.
+ */
+stock CollisionGroup GetEntityCollisionGroup(int entity)
+{
+	return view_as<CollisionGroup>(GetEntProp(entity, Prop_Data, "m_CollisionGroup"));
+}
+
+/**
+ * Sets an entity's collision group.
+ *
+ * @param entity	Entity index.
+ * @param group		CollisionGroup value.
+ * @error			Invalid entity index, or lack of mod compliance.
+ */
+stock void SetEntityCollisionGroup(int entity, CollisionGroup group)
+{
+	SetEntProp(entity, Prop_Data, "m_CollisionGroup", group);
+}
+
+/*---------------------------------------------------------*/
+//COMMANDS
+/*---------------------------------------------------------*/
+
+stock void GetCommandName(char[] buffer, int size)
+{
+	GetCmdArg(0, buffer, size);
+}
+
+stock int GetCmdArgInt(int argnum)
+{
+	char sBuffer[64];
+	GetCmdArg(argnum, sBuffer, sizeof(sBuffer));
+	return StringToInt(sBuffer);
+}
+
+stock float GetCmdArgFloat(int argnum)
+{
+	char sBuffer[64];
+	GetCmdArg(argnum, sBuffer, sizeof(sBuffer));
+	return StringToFloat(sBuffer);
+}
+
+stock bool GetCmdArgBool(int argnum)
+{
+	char sBuffer[64];
+	GetCmdArg(argnum, sBuffer, sizeof(sBuffer));
+	return view_as<bool>(StringToInt(sBuffer));
+}
+
+stock int GetCmdArgTarget(int client, int argnum, bool nobots = false, bool immunity = true)
+{
+	char sTarget[MAX_TARGET_LENGTH];
+	GetCmdArg(argnum, sTarget, sizeof(sTarget));
+	return FindTarget(client, sTarget, nobots, immunity);
+}
+
+/*---------------------------------------------------------*/
+//UTILITIES
+/*---------------------------------------------------------*/
+stock int Util_GetMaxHealth(int client)
+{
+	switch (GetEngineVersion())
+	{
+		case Engine_TF2: return TF2_GetMaxHealth(client);
+	}
+	
+	return GetEntProp(client, Prop_Data, "m_iMaxHealth");
+}
+
+stock void Util_SetClientHealth(int client, int health)
+{
+	switch (GetEngineVersion())
+	{
+		case Engine_TF2: TF2_SetPlayerHealth(client, health);
+		default: SetEntityHealth(client, ClampCell(health, 1, Util_GetMaxHealth(client)));
+	}
+}
+
+stock void Util_AddClientHealth(int client, int health, float overheal = 1.5, bool additive = false, bool event = true)
+{
+	switch (GetEngineVersion())
+	{
+		case Engine_TF2: TF2_AddPlayerHealth(client, health, overheal, additive, event);
+		default: SetEntityHealth(client, ClampCell((GetClientHealth(client) + health), 1, Util_GetMaxHealth(client)));
+	}
+}
+
+stock void Util_HealArea(float origin[3], float distance = 500.0, int amount = 500,  int team = 0, float overheal = 1.5, bool additive = false, bool event = true)
+{
+	float vecOrigin[3];
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (!IsClientInGame(i) || !IsPlayerAlive(i) || (team > 0 && team != GetClientTeam(i)))
+			continue;
+
+		GetClientAbsOrigin(i, vecOrigin);
+
+		if (GetVectorDistance(origin, vecOrigin) > distance)
+			continue;
+
+		Util_AddClientHealth(i, amount, overheal, additive, event);
+	}
+}
+
+/*--------------------------------------------------------->*/
+//MODEL
+/*--------------------------------------------------------->*/
 stock bool SetModel(int entity, char model[PLATFORM_MAX_PATH], bool preload = false)
 {
-	if (entity <= 0 || strlen(model) == 0)
-	{
+	if (entity <= 0)
 		return false;
-	}
-
-	if (PrepareModel(model, preload) != -1)
+	
+	EngineVersion engine = GetEngineVersion();
+	
+	if (engine == Engine_CSGO && strlen(model ) > 0)
 	{
-		if (GetEngineVersion() == Engine_TF2)
+		if (StrContains(model, "models/") != 0)
+			Format(model, sizeof(model), "models/%s", model);
+		
+		if (IsModelPrecached(model))
 		{
-			SetVariantString(model);
+			SetEntityModel(entity, model);
+			return true;
+		}
+	}
+	else if (PrepareModel(model, preload) != 0)
+	{
+		if (engine == Engine_TF2)
+		{
+			SetVariantString(model); //Empty string = disable custom model
 			AcceptEntityInput(entity, "SetCustomModel");
 
 			SetEntProp(entity, Prop_Send, "m_bCustomModelRotates", 1);
 			SetEntProp(entity, Prop_Send, "m_bUseClassAnimations", 1);
+			
+			return true;
 		}
-		else
+		else if (strlen(model) > 0 && IsModelPrecached(model))
 		{
 			SetEntityModel(entity, model);
+			return true;
 		}
-
-		return true;
 	}
 
 	return false;
 }
 
-stock bool SetModelViaConVar(int entity, ConVar &convar, bool preload = false)
-{
-	if (convar == null)
-	{
-		return false;
-	}
-
-	char sBuffer[PLATFORM_MAX_PATH];
-	convar.GetString(sBuffer, sizeof(sBuffer));
-
-	return SetModel(entity, sBuffer, preload);
-}
-
 stock int PrepareModel(char model[PLATFORM_MAX_PATH], bool preload = false)
 {
 	if (strlen(model) == 0)
-	{
-		return 0;
-	}
+		return -1;
 
 	if (StrContains(model, "models/") != 0)
-	{
 		Format(model, sizeof(model), "models/%s", model);
-	}
-
-	//ParseMDLFiles(model);
-
+	
 	return PrecacheModel(model, preload);
 }
 
-stock int PrepareModelConVar(ConVar &convar, bool preload = false)
-{
-	if (convar == null)
-	{
-		return -1;
-	}
-
-	char sBuffer[PLATFORM_MAX_PATH];
-	convar.GetString(sBuffer, sizeof(sBuffer));
-
-	return PrepareModel(sBuffer, preload);
-}
-
 /*--------------------------------------------------------->*/
-//Sound Stocks
+//SOUNDS
 /*--------------------------------------------------------->*/
-
 stock bool EmitSoundToClientSafe(int client, const char[] sample, int entity = SOUND_FROM_PLAYER, int channel = SNDCHAN_AUTO, int level = SNDLEVEL_NORMAL, int flags = SND_NOFLAGS, float volume = SNDVOL_NORMAL, int pitch = SNDPITCH_NORMAL, int speakerentity = -1, const float origin[3] = NULL_VECTOR, const float dir[3] = NULL_VECTOR, bool updatePos = true, float soundtime = 0.0)
 {
 	if (client == 0 || !IsClientInGame(client) || IsFakeClient(client) || strlen(sample) == 0)
-	{
 		return false;
-	}
 
 	char sSound[PLATFORM_MAX_PATH];
 	strcopy(sSound, sizeof(sSound), sample);
@@ -2252,23 +2181,10 @@ stock bool EmitSoundToClientSafe(int client, const char[] sample, int entity = S
 	return false;
 }
 
-stock bool EmitSoundToClientViaConVar(int client, ConVar convar, int entity = SOUND_FROM_PLAYER, int channel = SNDCHAN_AUTO, int level = SNDLEVEL_NORMAL, int flags = SND_NOFLAGS, float volume = SNDVOL_NORMAL, int pitch = SNDPITCH_NORMAL, int speakerentity = -1, const float origin[3] = NULL_VECTOR, const float dir[3] = NULL_VECTOR, bool updatePos = true, float soundtime = 0.0)
-{
-	if (convar == null)
-	{
-		return false;
-	}
-
-	char sBuffer[PLATFORM_MAX_PATH];
-	convar.GetString(sBuffer, sizeof(sBuffer));
-
-	return EmitSoundToClientSafe(client, sBuffer, entity, channel, level, flags, volume, pitch, speakerentity, origin, dir, updatePos, soundtime);
-}
-
 stock bool EmitSoundToClientSafeDelayed(int client, const char[] sample, float delay = 0.0, int entity = SOUND_FROM_PLAYER, int channel = SNDCHAN_AUTO, int level = SNDLEVEL_NORMAL, int flags = SND_NOFLAGS, float volume = SNDVOL_NORMAL, int pitch = SNDPITCH_NORMAL, int speakerentity = -1, const float origin[3] = NULL_VECTOR, const float dir[3] = NULL_VECTOR, bool updatePos = true, float soundtime = 0.0)
 {
 	DataPack hPack;
-	CreateDataTimer(ClampCell(delay, 0, 9999999.9), Timer_PlayClientSound280358023580235, hPack, TIMER_FLAG_NO_MAPCHANGE);
+	CreateDataTimer(ClampCell(delay, 0, 9999999.9), __Timer_PlayClientSound, hPack, TIMER_FLAG_NO_MAPCHANGE);
 	hPack.WriteCell(client);
 	hPack.WriteString(sample);
 	hPack.WriteCell(entity);
@@ -2288,7 +2204,7 @@ stock bool EmitSoundToClientSafeDelayed(int client, const char[] sample, float d
 	hPack.WriteFloat(soundtime);
 }
 
-public Action Timer_PlayClientSound280358023580235(Handle timer, DataPack data)
+public Action __Timer_PlayClientSound(Handle timer, DataPack data)
 {
 	data.Reset();
 
@@ -2324,9 +2240,7 @@ public Action Timer_PlayClientSound280358023580235(Handle timer, DataPack data)
 stock bool EmitSoundToAllSafe(const char[] sample, int entity = SOUND_FROM_PLAYER, int channel = SNDCHAN_AUTO, int level = SNDLEVEL_NORMAL, int flags = SND_NOFLAGS, float volume = SNDVOL_NORMAL, int pitch = SNDPITCH_NORMAL, int speakerentity = -1, const float origin[3] = NULL_VECTOR, const float dir[3] = NULL_VECTOR, bool updatePos = true, float soundtime = 0.0)
 {
 	if (strlen(sample) == 0)
-	{
 		return false;
-	}
 
 	char sSound[PLATFORM_MAX_PATH];
 	strcopy(sSound, sizeof(sSound), sample);
@@ -2350,23 +2264,10 @@ stock bool EmitSoundToAllSafe(const char[] sample, int entity = SOUND_FROM_PLAYE
 	return false;
 }
 
-stock bool EmitSoundToAllViaConVar(ConVar convar, int entity = SOUND_FROM_PLAYER, int channel = SNDCHAN_AUTO, int level = SNDLEVEL_NORMAL, int flags = SND_NOFLAGS, float volume = SNDVOL_NORMAL, int pitch = SNDPITCH_NORMAL, int speakerentity = -1, const float origin[3] = NULL_VECTOR, const float dir[3] = NULL_VECTOR, bool updatePos = true, float soundtime = 0.0)
-{
-	if (convar = null)
-	{
-		return false;
-	}
-
-	char sBuffer[PLATFORM_MAX_PATH];
-	convar.GetString(sBuffer, sizeof(sBuffer));
-
-	return EmitSoundToAllSafe(sBuffer, entity, channel, level, flags, volume, pitch, speakerentity, origin, dir, updatePos, soundtime);
-}
-
 stock bool EmitSoundToAllSafeDelayed(const char[] sample, float delay = 0.0, int entity = SOUND_FROM_PLAYER, int channel = SNDCHAN_AUTO, int level = SNDLEVEL_NORMAL, int flags = SND_NOFLAGS, float volume = SNDVOL_NORMAL, int pitch = SNDPITCH_NORMAL, int speakerentity = -1, const float origin[3] = NULL_VECTOR, const float dir[3] = NULL_VECTOR, bool updatePos = true, float soundtime = 0.0)
 {
 	DataPack hPack;
-	CreateDataTimer(ClampCell(delay, 0, 9999999.9), Timer_PlayAllSound280358023580235, hPack, TIMER_FLAG_NO_MAPCHANGE);
+	CreateDataTimer(ClampCell(delay, 0, 9999999.9), __Timer_PlayAllSound, hPack, TIMER_FLAG_NO_MAPCHANGE);
 	hPack.WriteString(sample);
 	hPack.WriteCell(entity);
 	hPack.WriteCell(channel);
@@ -2385,7 +2286,7 @@ stock bool EmitSoundToAllSafeDelayed(const char[] sample, float delay = 0.0, int
 	hPack.WriteFloat(soundtime);
 }
 
-public Action Timer_PlayAllSound280358023580235(Handle timer, DataPack data)
+public Action __Timer_PlayAllSound(Handle timer, DataPack data)
 {
 	data.Reset();
 
@@ -2419,9 +2320,7 @@ public Action Timer_PlayAllSound280358023580235(Handle timer, DataPack data)
 stock bool EmitAmbientSoundSafe(const char[] sample, const float origin[3], int entity = SOUND_FROM_WORLD, int level = SNDLEVEL_NORMAL, int flags = SND_NOFLAGS, float vol = SNDVOL_NORMAL, int pitch = SNDPITCH_NORMAL, float delay = 0.0)
 {
 	if (strlen(sample) == 0)
-	{
 		return false;
-	}
 
 	char sSound[PLATFORM_MAX_PATH];
 	strcopy(sSound, sizeof(sSound), sample);
@@ -2445,25 +2344,10 @@ stock bool EmitAmbientSoundSafe(const char[] sample, const float origin[3], int 
 	return false;
 }
 
-stock bool EmitAmbientSoundViaConVar(ConVar convar, bool preload = false, const float origin[3], int entity = SOUND_FROM_WORLD, int level = SNDLEVEL_NORMAL, int flags = SND_NOFLAGS, float vol = SNDVOL_NORMAL, int pitch = SNDPITCH_NORMAL, float delay = 0.0)
-{
-	if (convar == null)
-	{
-		return false;
-	}
-
-	char sBuffer[PLATFORM_MAX_PATH];
-	convar.GetString(sBuffer, sizeof(sBuffer));
-
-	return EmitAmbientSoundSafe(sBuffer, origin, entity, level, flags, vol, pitch, delay);
-}
-
 stock bool StopSoundSafe(int entity, int channel, const char[] sample)
 {
-	if (entity <= 0 || entity > MAX_ENTITY_LIMIT || strlen(sample) == 0)
-	{
+	if (entity <= 0 || entity > 4096 || strlen(sample) == 0)
 		return false;
-	}
 
 	char sSound[PLATFORM_MAX_PATH];
 	strcopy(sSound, sizeof(sSound), sample);
@@ -2489,35 +2373,18 @@ stock void StopSoundSafeAll(int entity, const char[] sample)
     StopSoundSafe(entity, SNDCHAN_USER_BASE, sample);
 }
 
-stock bool PrepareSoundConVar(ConVar convar, bool preload = false, bool download = true)
-{
-	if (convar == null)
-	{
-		return false;
-	}
-
-	char sBuffer[PLATFORM_MAX_PATH];
-	convar.GetString(sBuffer, sizeof(sBuffer));
-
-	return PrepareSound(sBuffer, preload, download);
-}
-
 stock bool PrepareSound(const char[] sample, bool preload = false, bool download = true)
 {
 	if (strlen(sample) == 0)
-	{
 		return false;
-	}
 
 	char sSound[PLATFORM_MAX_PATH];
 	strcopy(sSound, sizeof(sSound), sample);
 
 	if (StrContains(sSound, "sound/") == 0)
 	{
-		if (download &&)
-		{
+		if (download)
 			AddFileToDownloadsTable(sSound);
-		}
 
 		RemoveFrontString(sSound, sizeof(sSound), 6);
 	}
@@ -2537,9 +2404,7 @@ stock bool FakePrecacheSound(const char[] sound)
 	Format(sPath, sizeof(sPath), "sound/%s", sound);
 
 	if (!FileExists(sPath))
-	{
 		return false;
-	}
 
 	AddFileToDownloadsTable(sPath);
 
@@ -2555,13 +2420,12 @@ stock bool RequiresFakePrecache()
 }
 
 /*--------------------------------------------------------->*/
-//From SMLIB, lets draw happy little boxes together.
+//DRAW BOXES (SMLIB)
 /*--------------------------------------------------------->*/
 
 stock void Effect_DrawBeamBoxToClient(int client, const float bottomCorner[3], const float upperCorner[3], int modelIndex, int haloIndex, int startFrame = 0, int frameRate = 30, float life = 5.0, float width = 5.0, float endWidth = 5.0, int fadeLength = 2, float amplitude = 1.0, const color[4] =  { 255, 0, 0, 255 }, int speed = 0)
 {
-	int clients[1];
-	clients[0] = client;
+	int clients[1]; clients[0] = client;
 	Effect_DrawBeamBox(clients, 1, bottomCorner, upperCorner, modelIndex, haloIndex, startFrame, frameRate, life, width, endWidth, fadeLength, amplitude, color, speed);
 }
 
@@ -2573,9 +2437,7 @@ stock void Effect_DrawBeamBoxToAll(const float bottomCorner[3], const float uppe
 	for (int i = 1; i <= MaxClients; i++)
 	{
 		if (IsClientInGame(i) && !IsFakeClient(i))
-		{
 			clients[numClients++] = i;
-		}
 	}
 
 	Effect_DrawBeamBox(clients, numClients, bottomCorner, upperCorner, modelIndex, haloIndex, startFrame, frameRate, life, width, endWidth, fadeLength, amplitude, color, speed);
@@ -2661,110 +2523,9 @@ stock void Effect_DrawRangedBeamBox(float origin[3], const float bottomCorner[3]
 	}
 }
 
-//SM9(); has molested this stock at this point. <3
-stock void GetAbsBoundingBox(int ent, float mins[3], float maxs[3], bool half = false)
-{
-    float origin[3];
-
-    GetEntPropVector(ent, Prop_Data, "m_vecAbsOrigin", origin);
-    GetEntPropVector(ent, Prop_Data, "m_vecMins", mins);
-    GetEntPropVector(ent, Prop_Data, "m_vecMaxs", maxs);
-
-    mins[0] += origin[0];
-    mins[1] += origin[1];
-    mins[2] += origin[2];
-    maxs[0] += origin[0];
-    maxs[1] += origin[1];
-
-    if (!half) {
-        maxs[2] += origin[2];
-    } else {
-        maxs[2] = mins[2];
-    }
-}
-
-stock void CreateHudConVars(const char[] prefix, ConVar& position = null, ConVar& holdtime = null, ConVar& colors = null, ConVar& effect = null, ConVar& fxtime = null, ConVar& fades = null)
-{
-	char sName[512];
-
-	FormatEx(sName, sizeof(sName), "%sposition", prefix);
-	position = CreateConVar(sName, "-1.0, -1.0", "Position of this hud element.", FCVAR_NOTIFY);
-
-	FormatEx(sName, sizeof(sName), "%sholdtime", prefix);
-	holdtime = CreateConVar(sName, "1.0", "Holdtime for this hud element.", FCVAR_NOTIFY);
-
-	FormatEx(sName, sizeof(sName), "%scolor", prefix);
-	colors = CreateConVar(sName, "255, 255, 255, 255", "Color of this hud element.", FCVAR_NOTIFY);
-
-	FormatEx(sName, sizeof(sName), "%seffect", prefix);
-	effect = CreateConVar(sName, "0", "Effect for this hud element.", FCVAR_NOTIFY);
-
-	FormatEx(sName, sizeof(sName), "%sfxtime", prefix);
-	fxtime = CreateConVar(sName, "0.0", "Fxtime for this hud element.", FCVAR_NOTIFY);
-
-	FormatEx(sName, sizeof(sName), "%sfades", prefix);
-	fades = CreateConVar(sName, "-1.0, -1.0", "Fxtime for this hud element.", FCVAR_NOTIFY);
-}
-
-stock void SetHudTextParamsViaConVars(ConVar& position, ConVar& holdtime, ConVar& color, ConVar& effect, ConVar& fxtime, ConVar& fades)
-{
-	float vecPosition[2]; vecPosition = GetConVar2DVector(position);
-	int iColor[4]; iColor = GetConVarColor(color);
-	float fFades[2]; fFades = GetConVar2DVector(fades);
-
-	SetHudTextParams(vecPosition[0], vecPosition[1], holdtime.FloatValue, iColor[0], iColor[1], iColor[2], iColor[3], effect.IntValue, fxtime.FloatValue, fFades[0], fFades[1]);
-}
-
 /*--------------------------------------------------------->*/
-//Force look stocks by Pelipoika
+//TIMER
 /*--------------------------------------------------------->*/
-
-stock void LookAtPosition(int client, float flGoal[3], float flAimSpeed = 0.05)
-{
-    float flPos[3];
-    GetClientEyePosition(client, flPos);
-
-    float flAng[3];
-    GetClientEyeAngles(client, flAng);
-
-    // get normalised direction from target to client
-    float desired_dir[3];
-    MakeVectorFromPoints(flPos, flGoal, desired_dir);
-    GetVectorAngles(desired_dir, desired_dir);
-
-    // ease the current direction to the target direction
-    flAng[0] += AngleNormalize(desired_dir[0] - flAng[0]) * flAimSpeed;
-    flAng[1] += AngleNormalize(desired_dir[1] - flAng[1]) * flAimSpeed;
-
-    TeleportEntity(client, NULL_VECTOR, flAng, NULL_VECTOR);
-}
-
-stock float AngleNormalize(float angle)
-{
-    angle = fmodf(angle, 360.0);
-    if (angle > 180)
-    {
-        angle -= 360;
-    }
-    if (angle < -180)
-    {
-        angle += 360;
-    }
-
-    return angle;
-}
-
-stock float fmodf(float number, float denom)
-{
-    return number - RoundToFloor(number / denom) * denom;
-}
-
-/*--------------------------------------------------------->*/
-//TheXeon made methodmaps that should exist already but don't for some reason. (:
-//Got permission to post them here.
-/*--------------------------------------------------------->*/
-
-// TIMER METHODMAPS
 methodmap SMTimer < Handle
 {
 	/**
@@ -2840,14 +2601,16 @@ methodmap SMDataTimer < SMTimer
 	public SMDataTimer(float interval, Timer func, DataPack &datapack, int flags=0)
 	{
 		if (datapack == null)
-		{
 			datapack = new DataPack();
-		}
+		
 		flags |= TIMER_DATA_HNDL_CLOSE;
 		return view_as<SMDataTimer>(new SMTimer(interval, func, datapack, flags));
 	}
 }
 
+/*--------------------------------------------------------->*/
+//COOKIES
+/*--------------------------------------------------------->*/
 #if defined _clientprefs_included
 // Cookie Methodmaps!
 methodmap Cookie < Handle
@@ -2989,7 +2752,587 @@ methodmap CookieIterator < Handle
 }
 #endif
 
-/*methodmap SMMenu < Menu
+
+/*--------------------------------------------------------->*/
+//Pelipoika Stocks (He sometimes randomly sends me these)
+/*--------------------------------------------------------->*/
+
+stock bool GetClientAbsPosition(int client, float origin[3])
+{
+	if (client == 0 || client > MaxClients || !IsClientInGame(client) || !IsPlayerAlive(client))
+		return false;
+
+	GetClientAbsOrigin(client, origin);
+
+	float target_velocity[3];
+	GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", target_velocity);
+
+	float correct = 0.0;
+
+	correct += GetClientLatency(client, NetFlow_Outgoing);	// * 2
+
+	int lerpTicks = RoundToFloor(0.5 + GetEntPropFloat(client, Prop_Send, "m_fLerpTime") / GetTickInterval());
+
+	correct += (GetTickInterval() * lerpTicks);
+
+	float sv_unlag = FindConVar("sv_maxunlag").FloatValue;
+	correct = (correct > sv_unlag ? sv_unlag : (correct < 0.0 ? 0.0 : correct));
+
+	int targettick = GetEntProp(client, Prop_Send, "m_nSimulationTick") - lerpTicks;	//m_nTickBase
+
+	float deltaTime = correct - (GetTickInterval() * (GetGameTickCount() - targettick));
+
+	if (FloatAbs(deltaTime) > 0.2)
+		targettick = GetGameTickCount() - (RoundToFloor(0.5 + correct / GetTickInterval()));
+
+	ScaleVector(target_velocity, correct);
+	SubtractVectors(origin, target_velocity, origin);
+
+	return true;
+}
+
+stock void LookAtPosition(int client, float flGoal[3], float flAimSpeed = 0.05)
+{
+    float flPos[3];
+    GetClientEyePosition(client, flPos);
+
+    float flAng[3];
+    GetClientEyeAngles(client, flAng);
+
+    // get normalised direction from target to client
+    float desired_dir[3];
+    MakeVectorFromPoints(flPos, flGoal, desired_dir);
+    GetVectorAngles(desired_dir, desired_dir);
+
+    // ease the current direction to the target direction
+    flAng[0] += AngleNormalize(desired_dir[0] - flAng[0]) * flAimSpeed;
+    flAng[1] += AngleNormalize(desired_dir[1] - flAng[1]) * flAimSpeed;
+
+    TeleportEntity(client, NULL_VECTOR, flAng, NULL_VECTOR);
+}
+
+stock float AngleNormalize(float angle)
+{
+    angle -= RoundToFloor(angle / 360.0) * 360.0;
+    
+	if (angle > 180)
+        angle -= 360;
+    
+	if (angle < -180)
+        angle += 360;
+
+    return angle;
+}
+
+/* MAH BOI POIKA */
+stock void EquiweaponSlot(int client, int slot)
+{
+	int iWeapon;
+	if ((iWeapon = GetPlayerWeaponSlot(client, slot)) != 0 && IsValidEntity(iWeapon))
+		Equiweapon(client, iWeapon);
+}
+
+stock void Equiweapon(int client, int weapon)
+{
+	char class[64];
+	GetEntityClassname(weapon, class, sizeof(class));
+	FakeClientCommand(client, "use %s", class);
+}
+/* */
+
+/*--------------------------------------------------------->
+//CONVARS
+--------------------------------------------------------->*/
+stock int[] GetConVarColor(ConVar convar)
+{
+	int colors[4] = {255, 255, 255, 255};
+
+	char sBuffer[128];
+	convar.GetString(sBuffer, sizeof(sBuffer));
+
+	if (strlen(sBuffer) == 0)
+		return colors;
+
+	char sPart[4][6];
+	int iReturned = ExplodeString(sBuffer, StrContains(sBuffer, ", ") != -1 ? ", " : " ", sPart, 4, 6);
+
+	for (int i = 0; i < iReturned; i++)
+		colors[i] = StringToInt(sPart[i]);
+
+	return colors;
+}
+
+stock float[] GetConVarVector(ConVar convar)
+{
+	float vectors[3] = {0.0, 0.0, 0.0};
+
+	char sBuffer[128];
+	convar.GetString(sBuffer, sizeof(sBuffer));
+
+	if (strlen(sBuffer) == 0)
+		return vectors;
+
+	char sPart[3][12];
+	int iReturned = ExplodeString(sBuffer, StrContains(sBuffer, ", ") != -1 ? ", " : " ", sPart, 3, 12);
+
+	for (int i = 0; i < iReturned; i++)
+		vectors[i] = StringToFloat(sPart[i]);
+
+	return vectors;
+}
+
+stock float[] GetConVar2DVector(ConVar convar)
+{
+	float vectors[2] = {0.0, 0.0};
+
+	char sBuffer[128];
+	convar.GetString(sBuffer, sizeof(sBuffer));
+
+	if (strlen(sBuffer) == 0)
+		return vectors;
+
+	char sPart[2][12];
+	int iReturned = ExplodeString(sBuffer, StrContains(sBuffer, ", ") != -1 ? ", " : " ", sPart, 2, 12);
+
+	for (int i = 0; i < iReturned; i++)
+		vectors[i] = StringToFloat(sPart[i]);
+
+	return vectors;
+}
+
+stock int GetConVarRandom(ConVar convar, const char[] splitter = "-")
+{
+	char sBuffer[128];
+	convar.GetString(sBuffer, sizeof(sBuffer));
+
+	if (strlen(sBuffer) == 0)
+		return -1;
+
+	char sPart[2][12];
+	int iReturned = ExplodeString(sBuffer, splitter, sPart, 2, 12);
+	
+	int clamps[2];
+	for (int i = 0; i < iReturned; i++)
+		clamps[i] = StringToInt(sPart[i]);
+		
+	if (clamps[0] > clamps[1])
+		clamps[0] = clamps[1];
+
+	return GetRandomInt(clamps[0], clamps[1]);
+}
+
+stock float GetConVarRandomFloat(ConVar convar, const char[] splitter = "-")
+{
+	char sBuffer[128];
+	convar.GetString(sBuffer, sizeof(sBuffer));
+
+	if (strlen(sBuffer) == 0)
+		return -1.0;
+
+	char sPart[2][12];
+	int iReturned = ExplodeString(sBuffer, splitter, sPart, 2, 12);
+	
+	float clamps[2];
+	for (int i = 0; i < iReturned; i++)
+		clamps[i] = StringToFloat(sPart[i]);
+		
+	if (clamps[0] > clamps[1])
+		clamps[0] = clamps[1];
+
+	return GetRandomFloat(clamps[0], clamps[1]);
+}
+
+stock void CreateHudConVars(const char[] prefix, ConVar& position = null, ConVar& holdtime = null, ConVar& colors = null, ConVar& effect = null, ConVar& fxtime = null, ConVar& fades = null)
+{
+	char sName[512];
+
+	FormatEx(sName, sizeof(sName), "%sposition", prefix);
+	position = CreateConVar(sName, "-1.0, -1.0", "Position of this hud element.", FCVAR_NOTIFY);
+
+	FormatEx(sName, sizeof(sName), "%sholdtime", prefix);
+	holdtime = CreateConVar(sName, "1.0", "Holdtime for this hud element.", FCVAR_NOTIFY);
+
+	FormatEx(sName, sizeof(sName), "%scolor", prefix);
+	colors = CreateConVar(sName, "255, 255, 255, 255", "Color of this hud element.", FCVAR_NOTIFY);
+
+	FormatEx(sName, sizeof(sName), "%seffect", prefix);
+	effect = CreateConVar(sName, "0", "Effect for this hud element.", FCVAR_NOTIFY);
+
+	FormatEx(sName, sizeof(sName), "%sfxtime", prefix);
+	fxtime = CreateConVar(sName, "0.0", "Fxtime for this hud element.", FCVAR_NOTIFY);
+
+	FormatEx(sName, sizeof(sName), "%sfades", prefix);
+	fades = CreateConVar(sName, "-1.0, -1.0", "Fxtime for this hud element.", FCVAR_NOTIFY);
+}
+
+stock void SetHudTextParamsViaConVars(ConVar& position, ConVar& holdtime, ConVar& color, ConVar& effect, ConVar& fxtime, ConVar& fades)
+{
+	float vecPosition[2]; vecPosition = GetConVar2DVector(position);
+	int iColor[4]; iColor = GetConVarColor(color);
+	float fFades[2]; fFades = GetConVar2DVector(fades);
+
+	SetHudTextParams(vecPosition[0], vecPosition[1], holdtime.FloatValue, iColor[0], iColor[1], iColor[2], iColor[3], effect.IntValue, fxtime.FloatValue, fFades[0], fFades[1]);
+}
+
+stock void UnsetCheatVar(ConVar convar)
+{
+	int flags = convar.Flags;
+	flags &= ~FCVAR_CHEAT;
+	convar.Flags = flags;
+}
+
+stock void SetCheatVar(ConVar convar)
+{
+	int flags = convar.Flags;
+	flags |= FCVAR_CHEAT;
+	convar.Flags = flags;
+}
+
+stock bool SetModelViaConVar(int entity, ConVar &convar, bool preload = false)
+{
+	if (convar == null)
+		return false;
+
+	char sBuffer[PLATFORM_MAX_PATH];
+	convar.GetString(sBuffer, sizeof(sBuffer));
+
+	return SetModel(entity, sBuffer, preload);
+}
+
+stock int PrepareModelConVar(ConVar &convar, bool preload = false)
+{
+	if (convar == null)
+		return -1;
+
+	char sBuffer[PLATFORM_MAX_PATH];
+	convar.GetString(sBuffer, sizeof(sBuffer));
+
+	return PrepareModel(sBuffer, preload);
+}
+
+stock bool EmitSoundToClientViaConVar(int client, ConVar convar, int entity = SOUND_FROM_PLAYER, int channel = SNDCHAN_AUTO, int level = SNDLEVEL_NORMAL, int flags = SND_NOFLAGS, float volume = SNDVOL_NORMAL, int pitch = SNDPITCH_NORMAL, int speakerentity = -1, const float origin[3] = NULL_VECTOR, const float dir[3] = NULL_VECTOR, bool updatePos = true, float soundtime = 0.0)
+{
+	if (convar == null)
+		return false;
+
+	char sBuffer[PLATFORM_MAX_PATH];
+	convar.GetString(sBuffer, sizeof(sBuffer));
+
+	return EmitSoundToClientSafe(client, sBuffer, entity, channel, level, flags, volume, pitch, speakerentity, origin, dir, updatePos, soundtime);
+}
+
+stock bool EmitSoundToAllViaConVar(ConVar convar, int entity = SOUND_FROM_PLAYER, int channel = SNDCHAN_AUTO, int level = SNDLEVEL_NORMAL, int flags = SND_NOFLAGS, float volume = SNDVOL_NORMAL, int pitch = SNDPITCH_NORMAL, int speakerentity = -1, const float origin[3] = NULL_VECTOR, const float dir[3] = NULL_VECTOR, bool updatePos = true, float soundtime = 0.0)
+{
+	if (convar = null)
+		return false;
+
+	char sBuffer[PLATFORM_MAX_PATH];
+	convar.GetString(sBuffer, sizeof(sBuffer));
+
+	return EmitSoundToAllSafe(sBuffer, entity, channel, level, flags, volume, pitch, speakerentity, origin, dir, updatePos, soundtime);
+}
+
+stock bool EmitAmbientSoundViaConVar(ConVar convar, bool preload = false, const float origin[3], int entity = SOUND_FROM_WORLD, int level = SNDLEVEL_NORMAL, int flags = SND_NOFLAGS, float vol = SNDVOL_NORMAL, int pitch = SNDPITCH_NORMAL, float delay = 0.0)
+{
+	if (convar == null)
+		return false;
+
+	char sBuffer[PLATFORM_MAX_PATH];
+	convar.GetString(sBuffer, sizeof(sBuffer));
+
+	return EmitAmbientSoundSafe(sBuffer, origin, entity, level, flags, vol, pitch, delay);
+}
+
+stock bool PrepareSoundConVar(ConVar convar, bool preload = false, bool download = true)
+{
+	if (convar == null)
+		return false;
+
+	char sBuffer[PLATFORM_MAX_PATH];
+	convar.GetString(sBuffer, sizeof(sBuffer));
+
+	return PrepareSound(sBuffer, preload, download);
+}
+
+/*--------------------------------------------------------->
+//KEYVALUES
+--------------------------------------------------------->*/
+stock int KvGetInt(KeyValues kv, const char[] key, int defaultvalue = 0)
+{
+	return kv.GetNum(key, defaultvalue);
+}
+
+stock bool KvGetBool(KeyValues kv, const char[] key, bool defaultvalue = false)
+{
+	return view_as<bool>(kv.GetNum(key, view_as<int>(defaultvalue)));
+}
+
+stock bool KvGet2DVector(KeyValues kv, const char[] key, float buffer[2], const float defaultvector[2] = {0.0, 0.0})
+{
+	char sBuffer[512];
+	kv.GetString(key, sBuffer, sizeof(sBuffer));
+
+	if (strlen(sBuffer) == 0)
+	{
+		buffer[0] = defaultvector[0]; buffer[1] = defaultvector[1];
+		return false;
+	}
+
+	char sPart[2][32];
+	int iReturned = ExplodeString(sBuffer, StrContains(sBuffer, ",") != -1 ? ", " : " ", sPart, 2, 32);
+
+	if (iReturned != 2)
+	{
+		buffer[0] = defaultvector[0]; buffer[1] = defaultvector[1];
+		return false;
+	}
+
+	buffer[0] = StringToFloat(sPart[0]); buffer[1] = StringToFloat(sPart[1]);
+	return true;
+}
+
+/*--------------------------------------------------------->
+//MENU
+--------------------------------------------------------->*/
+stock bool AddMenuItemInt(Menu menu, int info, const char[] name, int style = ITEMDRAW_DEFAULT)
+{
+	char sInfo[1024];
+	IntToString(info, sInfo, sizeof(sInfo));
+	return menu.AddItem(sInfo, name, style);
+}
+
+stock bool GetMenuItemInt(Menu menu, int position, int& info, int& style = 0, char[] dispBuf = "", int dispBufLen = 0)
+{
+	char sInfo[1024];
+	bool found = menu.GetItem(position, sInfo, sizeof(sInfo), style, dispBuf, dispBufLen);
+	info = StringToInt(sInfo);
+	return found;
+}
+
+stock bool AddMenuItemFloat(Menu menu, float info, const char[] name, int style = ITEMDRAW_DEFAULT)
+{
+	char sInfo[1024];
+	FloatToString(info, sInfo, sizeof(sInfo));
+	return menu.AddItem(sInfo, name, style);
+}
+
+stock bool GetMenuItemFloat(Menu menu, int position, float& info, int& style = 0, char[] dispBuf = "", int dispBufLen = 0)
+{
+	char sInfo[1024];
+	bool found = menu.GetItem(position, sInfo, sizeof(sInfo), style, dispBuf, dispBufLen);
+	info = StringToFloat(sInfo);
+	return found;
+}
+
+stock bool AddMenuItemColor(Menu menu, int color[4], const char[] name, int style = ITEMDRAW_DEFAULT)
+{
+	char sInfo[1024];
+	FormatEx(sInfo, sizeof(sInfo), "%i %i %i %i", color[0], color[1], color[2], color[3]);
+	return menu.AddItem(sInfo, name, style);
+}
+
+stock bool GetMenuItemColor(Menu menu, int position, int color[4], int& style = 0, char[] dispBuf = "", int dispBufLen = 0)
+{
+	char sInfo[1024];
+	bool found = menu.GetItem(position, sInfo, sizeof(sInfo), style, dispBuf, dispBufLen);
+	
+	char sPart[4][64];
+	ExplodeString(sInfo, " ", sPart, 4, 64);
+	
+	for (int i = 0; i < 4; i++)
+		color[i] = StringToInt(sPart[i]);
+	
+	return found;
+}
+
+stock bool AddMenuItemVector(Menu menu, float vector[3], const char[] name, int style = ITEMDRAW_DEFAULT)
+{
+	char sInfo[1024];
+	FormatEx(sInfo, sizeof(sInfo), "%f %f %f", vector[0], vector[1], vector[2]);
+	return menu.AddItem(sInfo, name, style);
+}
+
+stock bool GetMenuItemVector(Menu menu, int position, float vector[3], int& style = 0, char[] dispBuf = "", int dispBufLen = 0)
+{
+	char sInfo[1024];
+	bool found = menu.GetItem(position, sInfo, sizeof(sInfo), style, dispBuf, dispBufLen);
+	
+	char sPart[3][64];
+	ExplodeString(sInfo, " ", sPart, 3, 64);
+	
+	for (int i = 0; i < 3; i++)
+		vector[i] = StringToFloat(sPart[i]);
+	
+	return found;
+}
+
+stock bool AddMenuItem2DVector(Menu menu, float vector[2], const char[] name, int style = ITEMDRAW_DEFAULT)
+{
+	char sInfo[1024];
+	FormatEx(sInfo, sizeof(sInfo), "%f %f", vector[0], vector[1]);
+	return menu.AddItem(sInfo, name, style);
+}
+
+stock bool GetMenuItem2DVector(Menu menu, int position, float vector[2], int& style = 0, char[] dispBuf = "", int dispBufLen = 0)
+{
+	char sInfo[1024];
+	bool found = menu.GetItem(position, sInfo, sizeof(sInfo), style, dispBuf, dispBufLen);
+	
+	char sPart[2][64];
+	ExplodeString(sInfo, " ", sPart, 2, 64);
+	
+	for (int i = 0; i < 2; i++)
+		vector[i] = StringToFloat(sPart[i]);
+	
+	return found;
+}
+
+stock bool ClearClientMenu(int client)
+{
+	if (client == 0 || client > MaxClients || IsFakeClient(client) || !IsClientInGame(client))
+		return false;
+	
+	CancelClientMenu(client);
+
+	Panel panel = new Panel();
+	panel.Send(client, __Panel_Void, 1);
+	delete panel;
+	
+	return true;
+}
+public int __Panel_Void(Menu menu, MenuAction action, int param1, int param2) { delete menu; }
+
+//Kisslick made the originals.
+stock bool PushMenuString(Menu menu, const char[] id, const char[] value)
+{
+	if (menu == null || strlen(id) == 0)
+		return false;
+	
+	return menu.AddItem(id, value, ITEMDRAW_IGNORE);
+}
+
+stock bool PushMenuCell(Menu menu, const char[] id, int value)
+{
+	if (menu == null || strlen(id) == 0)
+		return false;
+	
+	char sBuffer[128];
+	IntToString(value, sBuffer, sizeof(sBuffer));
+	return menu.AddItem(id, sBuffer, ITEMDRAW_IGNORE);
+}
+
+stock bool PushMenuFloat(Menu menu, const char[] id, float value)
+{
+	if (menu == null || strlen(id) == 0)
+		return false;
+	
+	char sBuffer[128];
+	FloatToString(value, sBuffer, sizeof(sBuffer));
+	return menu.AddItem(id, sBuffer, ITEMDRAW_IGNORE);
+}
+
+stock bool PushMenuBool(Menu menu, const char[] id, bool value)
+{
+	if (menu == null || strlen(id) == 0)
+		return false;
+	
+	char sBuffer[128];
+	IntToString(view_as<int>(value), sBuffer, sizeof(sBuffer));
+	return menu.AddItem(id, sBuffer, ITEMDRAW_IGNORE);
+}
+
+stock bool GetMenuString(Menu menu, const char[] id, char[] buffer, int size)
+{
+	if (menu == null || strlen(id) == 0)
+		return false;
+	
+	char info[128]; char data[8192];
+	for (int i = 0; i < menu.ItemCount; i++)
+	{
+		if (menu.GetItem(i, info, sizeof(info), _, data, sizeof(data)) && StrEqual(info, id))
+		{
+			strcopy(buffer, size, data);
+			return true;
+		}
+	}
+	
+	return false;
+}
+
+stock int GetMenuCell(Menu menu, const char[] id, int defaultvalue = 0)
+{
+	if (menu == null || strlen(id) == 0)
+		return defaultvalue;
+	
+	char info[128]; char data[128];
+	for (int i = 0; i < menu.ItemCount; i++)
+	{
+		if (menu.GetItem(i, info, sizeof(info), _, data, sizeof(data)) && StrEqual(info, id))
+			return StringToInt(data);
+	}
+	
+	return defaultvalue;
+}
+
+stock float GetMenuFloat(Menu menu, const char[] id, float defaultvalue = 0.0)
+{
+	if (menu == null || strlen(id) == 0)
+		return defaultvalue;
+		
+	char info[128]; char data[128];
+	for (int i = 0; i < menu.ItemCount; i++)
+	{
+		if (menu.GetItem(i, info, sizeof(info), _, data, sizeof(data)) && StrEqual(info, id))
+			return StringToFloat(data);
+	}
+	
+	return defaultvalue;
+}
+
+stock bool GetMenuBool(Menu menu, const char[] id, bool defaultvalue = false)
+{
+	if (menu == null || strlen(id) == 0)
+		return defaultvalue;
+	
+	char info[128]; char data[128];
+	for (int i = 0; i < menu.ItemCount; i++)
+	{
+		if (menu.GetItem(i, info, sizeof(info), _, data, sizeof(data)) && StrEqual(info, id))
+			return view_as<bool>(StringToInt(data));
+	}
+	
+	return defaultvalue;
+}
+
+stock bool CopyMenuAny(Menu source, Menu destination, const char[] id)
+{
+	if (source == null || destination == null || strlen(id) == 0)
+		return false;
+	
+	char info[128]; char data[128];
+
+	for (int i = 0; i < source.ItemCount; i++)
+	{
+		if (source.GetItem(i, info, sizeof(info), _, data, sizeof(data)) && StrEqual(info, id))
+			destination.AddItem(id, data, ITEMDRAW_IGNORE);
+	}
+	
+	return true;
+}
+
+stock bool AddMenuItemFormat(Menu menu, const char[] info, int style = ITEMDRAW_DEFAULT, const char[] format, any ...)
+{
+	if (menu == null)
+		return false;
+	
+	char sBuffer[256];
+	VFormat(sBuffer, sizeof(sBuffer), format, 5);
+
+	return menu.AddItem(info, sBuffer, style);
+}
+
+//TheXeon's baby
+methodmap SMMenu < Menu
 {
 	public void PushString(const char[] id, const char[] data)
 	{
@@ -3045,9 +3388,7 @@ methodmap CookieIterator < Handle
 			if (GetMenuItem(this, i, info, sizeof(info), _, data, sizeof(data)))
 			{
 				if (StrEqual(info, id))
-				{
 					return StringToInt(data);
-				}
 			}
 		}
 
@@ -3063,9 +3404,7 @@ methodmap CookieIterator < Handle
 			if (GetMenuItem(this, i, info, sizeof(info), _, data, sizeof(data)))
 			{
 				if (StrEqual(info, id))
-				{
 					return StringToFloat(data);
-				}
 			}
 		}
 
@@ -3081,9 +3420,7 @@ methodmap CookieIterator < Handle
 			if (GetMenuItem(this, i, info, sizeof(info), _, data, sizeof(data)))
 			{
 				if (StrEqual(info, id))
-				{
 					return view_as<bool>(StringToInt(data));
-				}
 			}
 		}
 
@@ -3099,9 +3436,7 @@ methodmap CookieIterator < Handle
 			if (GetMenuItem(this, i, info, sizeof(info), _, data, sizeof(data)))
 			{
 				if (StrEqual(info, id))
-				{
 					dest.AddItem(id, data, ITEMDRAW_IGNORE);
-				}
 			}
 		}
 	}
@@ -3113,7 +3448,7 @@ methodmap CookieIterator < Handle
 
 		return AddMenuItem(this, info, display, style);
 	}
-}*/
+}
 
 /*--------------------------------------------------------->
 .-----.                      .---.         .-.                          .---.
@@ -3228,7 +3563,7 @@ stock int TF2_CreateGlow(const char[] name, int target, int color[4] = {255, 255
 *	Retrieves the name of the class a client is playing as.
 *
 *	client	Client index.
-*	name	String buffer to save it to.
+*	buffer	String buffer to save it to.
 *	size	Size of the buffer.
 *	capitalize	Whether to capitalize the first letter or not.
 *
@@ -3236,7 +3571,22 @@ stock int TF2_CreateGlow(const char[] name, int target, int color[4] = {255, 255
 **/
 stock void TF2_GetClientClassName(int client, char[] buffer, int size, bool capitalize = false)
 {
-	TF2_GetClassName(TF2_GetPlayerClass(client), buffer, size, capitalize);
+	switch (TF2_GetPlayerClass(client))
+	{
+		case TFClass_Unknown: strcopy(buffer, size, "unknown");
+		case TFClass_Scout: strcopy(buffer, size, "scout");
+		case TFClass_Sniper: strcopy(buffer, size, "sniper");
+		case TFClass_Soldier: strcopy(buffer, size, "soldier");
+		case TFClass_DemoMan: strcopy(buffer, size, "demoman");
+		case TFClass_Medic: strcopy(buffer, size, "medic");
+		case TFClass_Heavy: strcopy(buffer, size, "heavy");
+		case TFClass_Pyro: strcopy(buffer, size, "pyro");
+		case TFClass_Spy: strcopy(buffer, size, "spy");
+		case TFClass_Engineer: strcopy(buffer, size, "engineer");
+	}
+
+	if (capitalize)
+		buffer[0] = CharToUpper(buffer[0]);
 }
 
 /**
@@ -3249,23 +3599,24 @@ stock void TF2_GetClientClassName(int client, char[] buffer, int size, bool capi
 *
 *	return	void
 **/
-stock void TF2_GetClassName(TFClassType class, char[] name, int size, bool capitalize = false)
+stock void TF2_GetClassName(TFClassType class, char[] buffer, int size, bool capitalize = false)
 {
 	switch (class)
 	{
-		case TFClass_Unknown: strcopy(name, size, "unknown");
-		case TFClass_Scout: strcopy(name, size, "scout");
-		case TFClass_Sniper: strcopy(name, size, "sniper");
-		case TFClass_Soldier: strcopy(name, size, "soldier");
-		case TFClass_DemoMan: strcopy(name, size, "demoman");
-		case TFClass_Medic: strcopy(name, size, "medic");
-		case TFClass_Heavy: strcopy(name, size, "heavy");
-		case TFClass_Pyro: strcopy(name, size, "pyro");
-		case TFClass_Spy: strcopy(name, size, "spy");
-		case TFClass_Engineer: strcopy(name, size, "engineer");
+		case TFClass_Unknown: strcopy(buffer, size, "unknown");
+		case TFClass_Scout: strcopy(buffer, size, "scout");
+		case TFClass_Sniper: strcopy(buffer, size, "sniper");
+		case TFClass_Soldier: strcopy(buffer, size, "soldier");
+		case TFClass_DemoMan: strcopy(buffer, size, "demoman");
+		case TFClass_Medic: strcopy(buffer, size, "medic");
+		case TFClass_Heavy: strcopy(buffer, size, "heavy");
+		case TFClass_Pyro: strcopy(buffer, size, "pyro");
+		case TFClass_Spy: strcopy(buffer, size, "spy");
+		case TFClass_Engineer: strcopy(buffer, size, "engineer");
 	}
 
-	if (capitalize) name[0] = CharToUpper(name[0]);
+	if (capitalize)
+		buffer[0] = CharToUpper(buffer[0]);
 }
 
 /**
@@ -3287,9 +3638,7 @@ stock void TF2_StripToMelee(int client)
 
 	int melee;
 	if ((melee = GetPlayerWeaponSlot(client, TFWeaponSlot_Melee)) != -1 && IsValidEntity(melee))
-	{
 		EquipPlayerWeapon(client, melee);
-	}
 }
 
 /**
@@ -3308,22 +3657,15 @@ stock void TF2_SetPlayerColor(int client, int red, int green, int blue, int alph
 	SetEntityRenderMode(client, RENDER_TRANSCOLOR);
 	SetEntityRenderColor(client, red, green, blue, alpha);
 
-	int entity = INVALID_ENT_INDEX;
-	while((entity = FindEntityByClassname(entity, "tf_weapon_*")) != INVALID_ENT_INDEX)
+	int entity = -1; char class[64];
+	while((entity = FindEntityByClassname(entity, "tf_*")) != -1)
 	{
-		if ((HasEntProp(entity, Prop_Send, "m_hOwner") && GetEntPropEnt(entity, Prop_Send, "m_hOwner") == client) ||
-		 (HasEntProp(entity, Prop_Send, "m_hOwnerEntity") && GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity") == client))
-		{
-			SetEntityRenderMode(client, RENDER_TRANSCOLOR);
-			SetEntityRenderColor(entity, red, green, blue, alpha);
-		}
-	}
-
-	entity = INVALID_ENT_INDEX;
-	while((entity = FindEntityByClassname(entity, "tf_wearable_*")) != INVALID_ENT_INDEX)
-	{
-		if ((HasEntProp(entity, Prop_Send, "m_hOwner") && GetEntPropEnt(entity, Prop_Send, "m_hOwner") == client) ||
-		 (HasEntProp(entity, Prop_Send, "m_hOwnerEntity") && GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity") == client))
+		GetEntityClassname(entity, class, sizeof(class));
+		
+		if (StrContains(class, "tf_wearable") != 0 && !StrEqual(class, "tf_weapon_spellbook") && !StrEqual(class, "tf_powerup_bottle"))
+			continue;
+		
+		if (GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity") == client)
 		{
 			SetEntityRenderMode(client, RENDER_TRANSCOLOR);
 			SetEntityRenderColor(entity, red, green, blue, alpha);
@@ -3342,7 +3684,7 @@ stock void TF2_SetPlayerColor(int client, int red, int green, int blue, int alph
 **/
 stock void TF2_ForceRoundWin(TFTeam team, bool map_valid = true)
 {
-	int entity = FindEntityByClassname(INVALID_ENT_INDEX, "team_control_point_master");
+	int entity = FindEntityByClassname(-1, "team_control_point_master");
 
 	if (!IsValidEntity(entity))
 	{
@@ -3364,8 +3706,8 @@ stock void TF2_ForceRoundWin(TFTeam team, bool map_valid = true)
 **/
 stock float TF2_GetUberLevel(int client)
 {
-	int weapon = GetPlayerWeaponSlot(client, 1);
-	return (IsValidEntity(weapon) && HasEntProp(weapon, Prop_Send, "m_flChargeLevel")) ? GetEntPropFloat(weapon, Prop_Send, "m_flChargeLevel") : -1.0;
+	int secondary = GetPlayerWeaponSlot(client, 1);
+	return (IsValidEntity(secondary) && HasEntProp(secondary, Prop_Send, "m_flChargeLevel")) ? GetEntPropFloat(secondary, Prop_Send, "m_flChargeLevel") : -1.0;
 }
 
 /**
@@ -3378,16 +3720,14 @@ stock float TF2_GetUberLevel(int client)
 **/
 stock void TF2_SetUberLevel(int client, float amount, bool cap = false)
 {
-	int weapon = GetPlayerWeaponSlot(client, 1);
+	int secondary = GetPlayerWeaponSlot(client, 1);
 
-	if (IsValidEntity(weapon) && HasEntProp(weapon, Prop_Send, "m_flChargeLevel"))
+	if (IsValidEntity(secondary) && HasEntProp(secondary, Prop_Send, "m_flChargeLevel"))
 	{
-		SetEntPropFloat(weapon, Prop_Send, "m_flChargeLevel", amount);
+		SetEntPropFloat(secondary, Prop_Send, "m_flChargeLevel", amount);
 
 		if (cap && TF2_GetUberLevel(client) > 1.00)
-		{
-			SetEntPropFloat(weapon, Prop_Send, "m_flChargeLevel", 1.00);
-		}
+			SetEntPropFloat(secondary, Prop_Send, "m_flChargeLevel", 1.00);
 	}
 }
 
@@ -3505,17 +3845,13 @@ stock int TF2_GetHealingTarget(int client)
 	int weapon = GetPlayerWeaponSlot(client, 1);
 
 	if (!IsValidEntity(weapon) || weapon != GetActiveWeapon(client))
-	{
 		return -1;
-	}
 
 	char sClassname[32];
 	GetEdictClassname(weapon, sClassname, sizeof(sClassname));
 
 	if (StrContains(sClassname, "tf_weapon_med") == -1)
-	{
 		return -1;
-	}
 
 	return GetEntProp(weapon, Prop_Send, "m_bHealing") ? GetEntPropEnt(weapon, Prop_Send, "m_hHealingTarget") : -1;
 }
@@ -3550,6 +3886,7 @@ stock bool IsArenaActive()
 **/
 stock void TF2_CreateExplosion(float origin[3], float damage = 99999.0, float radius = 250.0, float magnitude = 500.0, int attacker = 0, int inflictor = 0, int team = 0, const char[] particle = "cinefx_goldrush", const char[] sound = "items/cart_explode.wav", float amplitude = 50.0, float frequency = 150.0, float duration = 3.0, int damagetype = DMG_BLAST, int weapon = -1)
 {
+	//NOT UNMERGING, NOPE
 	CreateParticle(particle, 10.0, origin);
 	EmitSoundToAllSafe(sound);
 	ScreenShakeAll(SHAKE_START, amplitude, frequency, duration);
@@ -3570,9 +3907,7 @@ stock void TF2_RemoveAllWearables(int client)
 	while ((entity = FindEntityByClassname(entity, "tf_wearable*")) != -1)
 	{
 		if (HasEntProp(entity, Prop_Send, "m_hOwnerEntity") && GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity") == client)
-		{
 			TF2_RemoveWearable(client, entity);
-		}
 	}
 }
 
@@ -3631,8 +3966,13 @@ stock int TF2_SpawnPickup(float origin[3], int type = PICKUP_TYPE_HEALTHKIT, int
 		origin[2] += z_offset;
 		DispatchKeyValueVector(entity, "origin", origin);
 		DispatchKeyValue(entity, "TeamNum", sTeam);
-		if (!persistent) DispatchKeyValue(entity, "OnPlayerTouch", "!self,Kill,,0,-1");	//Make sure it's killed after 1st pickup.
-		if (strlen(model) > 0) DispatchKeyValue(entity, "powerup_model", model);
+		
+		if (!persistent)
+			DispatchKeyValue(entity, "OnPlayerTouch", "!self,Kill,,0,-1");	//Make sure it's killed after 1st pickup.
+		
+		if (strlen(model) > 0)
+			DispatchKeyValue(entity, "powerup_model", model);
+		
 		DispatchSpawn(entity);
 
 		EmitSoundToAll("items/spawn_item.wav", entity, _, _, _, 0.75);
@@ -3701,9 +4041,7 @@ stock void TF2_SetPlayerHealth(int client, int amount, float overheal = 1.5, boo
 		iNewHealth = ClampCell(iNewHealth, 1, iMax);
 
 		if (event)
-		{
 			TF2_ShowHealthGain(client, iNewHealth - iHealth);
-		}
 
 		SetEntityHealth(client, iNewHealth);
 	}
@@ -3731,9 +4069,7 @@ stock void TF2_AddPlayerHealth(int client, int amount, float overheal = 1.5, boo
 		iNewHealth = ClampCell(iNewHealth, 1, iMax);
 
 		if (event)
-		{
 			TF2_ShowHealthGain(client, iNewHealth - iHealth);
-		}
 
 		SetEntityHealth(client, iNewHealth);
 	}
@@ -3761,9 +4097,7 @@ stock void TF2_RemovePlayerHealth(int client, int amount, float overheal = 1.5, 
 		iNewHealth = ClampCell(iNewHealth, 1, iMax);
 
 		if (event)
-		{
 			TF2_ShowHealthGain(client, iNewHealth - iHealth);
-		}
 
 		SetEntityHealth(client, iNewHealth);
 	}
@@ -3867,13 +4201,9 @@ stock void TF2Attrib_SetByName_Weapons(int client, int weapon = -1, char[] attri
 	}
 
 	if (invert)
-	{
 		value = 1.0 + value;
-	}
 	else
-	{
 		value = 1.0 - value;
-	}
 
 	int weapon2;
 	for (int i = 0; i < 6; i++)
@@ -3881,9 +4211,7 @@ stock void TF2Attrib_SetByName_Weapons(int client, int weapon = -1, char[] attri
 		weapon2 = GetPlayerWeaponSlot(client, i);
 
 		if (IsValidEntity(weapon2))
-		{
 			TF2Attrib_SetByName(weapon2, attrib, value);
-		}
 	}
 }
 
@@ -3910,9 +4238,7 @@ stock void TF2Attrib_RemoveByName_Weapons(int client, int weapon = -1, char[] at
 		weapon2 = GetPlayerWeaponSlot(client, i);
 
 		if (IsValidEntity(weapon2))
-		{
 			TF2Attrib_RemoveByName(weapon2, attrib);
-		}
 	}
 }
 
@@ -3922,22 +4248,12 @@ stock void TF2Attrib_RemoveByName_Weapons(int client, int weapon = -1, char[] at
 *	client	Client index.
 *	value	Amount of movement speed to apply.
 *
-*	return	The original speed they were at to cache later if need be.
+*	return	N/A
 **/
-stock float TF2Attrib_ApplyMoveSpeedBonus(int client, float value)
+stock void TF2Attrib_ApplyMoveSpeedBonus(int client, float value)
 {
-	Address addr = TF2Attrib_GetByName(client, "move speed bonus");
-	float old;
-
-	if (addr != Address_Null)
-	{
-		old = TF2Attrib_GetValue(addr);
-	}
-
 	TF2Attrib_SetByName(client, "move speed bonus", 1.0 + value);
 	TF2_AddCondition(client, TFCond_SpeedBuffAlly, 0.0);
-
-	return old;
 }
 
 /**
@@ -3959,22 +4275,12 @@ stock void TF2Attrib_RemoveMoveSpeedBonus(int client)
 *	client	Client index.
 *	value	Amount of movement speed to apply.
 *
-*	return	The original speed they were at to cache later if need be.
+*	return	N/A
 **/
-stock float TF2Attrib_ApplyMoveSpeedPenalty(int client, float value)
+stock void TF2Attrib_ApplyMoveSpeedPenalty(int client, float value)
 {
-	Address addr = TF2Attrib_GetByName(client, "move speed bonus");
-	float old;
-
-	if (addr != Address_Null)
-	{
-		old = TF2Attrib_GetValue(addr);
-	}
-
 	TF2Attrib_SetByName(client, "move speed penalty", 1.0 - value);
 	TF2_AddCondition(client, TFCond_SpeedBuffAlly, 0.0);
-
-	return old;
 }
 
 /**
@@ -4023,9 +4329,7 @@ stock void TF2_SetSpellUses(int client, int uses)
 	int entity = TF2_GetSpellBook(client);
 
 	if (IsValidEntity(entity))
-	{
 		SetEntProp(entity, Prop_Send, "m_iSpellCharges", uses);
-	}
 }
 
 /**
@@ -4040,11 +4344,9 @@ stock int TF2_GetSpell(int client)
 	int entity = TF2_GetSpellBook(client);
 
 	if (IsValidEntity(entity))
-	{
 		return GetEntProp(ent, Prop_Send, "m_iSelectedSpellIndex");
-	}
 
-	return INVALID_ENT_INDEX;
+	return -1;
 }
 
 /**
@@ -4059,9 +4361,7 @@ stock int TF2_GetSpellUses(int client)
 	int entity = TF2_GetSpellBook(client);
 
 	if (IsValidEntity(entity))
-	{
 		return GetEntProp(entity, Prop_Send, "m_iSpellCharges");
-	}
 }
 
 /**
@@ -4077,9 +4377,7 @@ stock int TF2_GetSpellBook(int client)
 	while((entity = FindEntityByClassname(entity, "tf_weapon_spellbook")) != INVALID_ENT_REFERENCE)
 	{
 		if (HasEntProp(entity, Prop_Send, "m_hOwnerEntity") && GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity") == client)
-		{
 			return entity;
-		}
 	}
 
 	return -1;
@@ -4131,7 +4429,8 @@ stock void TF2_GetSpellName(int spell, char[] buffer, int size, bool capitalize 
 		default: strcopy(buffer, size, "none");
 	}
 
-	if (capitalize) name[0] = CharToUpper(name[0]);
+	if (capitalize)
+		buffer[0] = CharToUpper(buffer[0]);
 }
 
 /**
@@ -4146,66 +4445,22 @@ stock void TF2_SetPowerup(int client, int powerup)
 {
 	switch (powerup)
 	{
-		case POWERUP_STRENGTH:
-		{
-			TF2_AddCondition(client, TFCond_RuneStrength);
-		}
-
-		case POWERUP_RESIST:
-		{
-			TF2_AddCondition(client, TFCond_RuneResist);
-		}
-
-		case POWERUP_VAMPIRE:
-		{
-			TF2_AddCondition(client, TFCond_RuneVampire);
-		}
-
-		case POWERUP_WARLOCK:
-		{
-			TF2_AddCondition(client, TFCond_RuneWarlock);
-		}
-
-		case POWERUP_HASTE:
-		{
-			TF2_AddCondition(client, TFCond_RuneHaste);
-		}
-
-		case POWERUP_REGEN:
-		{
-			TF2_AddCondition(client, TFCond_RuneRegen);
-		}
-
-		case POWERUP_PRECISION:
-		{
-			TF2_AddCondition(client, TFCond_RunePrecision);
-		}
-
-		case POWERUP_AGILITY:
-		{
-			TF2_AddCondition(client, TFCond_RuneAgility);
-		}
-
-		case POWERUP_KNOCKOUT:
-		{
-			TF2_AddCondition(client, TFCond_RuneKnockout);
-		}
-
+		case POWERUP_STRENGTH: TF2_AddCondition(client, TFCond_RuneStrength);
+		case POWERUP_RESIST: TF2_AddCondition(client, TFCond_RuneResist);
+		case POWERUP_VAMPIRE: TF2_AddCondition(client, TFCond_RuneVampire);
+		case POWERUP_WARLOCK: TF2_AddCondition(client, TFCond_RuneWarlock);
+		case POWERUP_HASTE: TF2_AddCondition(client, TFCond_RuneHaste);
+		case POWERUP_REGEN: TF2_AddCondition(client, TFCond_RuneRegen);
+		case POWERUP_PRECISION: TF2_AddCondition(client, TFCond_RunePrecision);
+		case POWERUP_AGILITY: TF2_AddCondition(client, TFCond_RuneAgility);
+		case POWERUP_KNOCKOUT: TF2_AddCondition(client, TFCond_RuneKnockout);
 		case POWERUP_KING:
 		{
 			TF2_AddCondition(client, TFCond_KingRune);
 			TF2_AddCondition(client, TFCond_KingAura);
 		}
-
-		case POWERUP_PLAGUE:
-		{
-			TF2_AddCondition(client, TFCond_Plague);
-		}
-
-		case POWERUP_SUPERNOVA:
-		{
-			TF2_AddCondition(client, TFCond_SupernovaRune);
-		}
+		case POWERUP_PLAGUE: TF2_AddCondition(client, TFCond_Plague);
+		case POWERUP_SUPERNOVA: TF2_AddCondition(client, TFCond_SupernovaRune);
 	}
 
 	//This has to be here.
@@ -4260,7 +4515,7 @@ stock bool TF2_GetDefaultWeaponClass(TFClassType class, int slot, char[] buffer,
 			switch(slot)
 			{
 				case 0: Format(buffer, size, "tf_weapon_grenadelauncher"), found = true;
-				case 1: Format(buffer, size, "tf_weapon_pipebomblauncher"), found = true;
+				case 1: Format(buffer, size, "tf_weapon_ipebomblauncher"), found = true;
 				case 2: Format(buffer, size, "tf_weapon_bottle"), found = true;
 			}
 		}
@@ -4332,83 +4587,62 @@ stock int TF2_GetDefaultWeaponID(TFClassType class, int slot)
 		{
 			switch(slot)
 			{
-				case 0: return 13;
-				case 1: return 23;
-				case 2: return 0;
+				case 0: return 13; case 1: return 23; case 2: return 0;
 			}
 		}
 		case TFClass_Sniper:
 		{
 			switch(slot)
 			{
-				case 0: return 14;
-				case 1: return 16;
-				case 2: return 3;
+				case 0: return 14; case 1: return 16; case 2: return 3;
 			}
 		}
 		case TFClass_Soldier:
 		{
 			switch(slot)
 			{
-				case 0: return 18;
-				case 1: return 10;
-				case 2: return 6;
+				case 0: return 18; case 1: return 10; case 2: return 6;
 			}
 		}
 		case TFClass_DemoMan:
 		{
 			switch(slot)
-			{
-				case 0: return 19;
-				case 1: return 20;
-				case 2: return 1;
+			{ case 0: return 19; case 1: return 20; case 2: return 1;
 			}
 		}
 		case TFClass_Medic:
 		{
 			switch(slot)
 			{
-				case 0: return 17;
-				case 1: return 29;
-				case 2: return 8;
+				case 0: return 17; case 1: return 29; case 2: return 8;
 			}
 		}
 		case TFClass_Heavy:
 		{
 			switch(slot)
 			{
-				case 0: return 15;
-				case 1: return 11;
-				case 2: return 5;
+				case 0: return 15; case 1: return 11; case 2: return 5;
 			}
 		}
 		case TFClass_Pyro:
 		{
 			switch(slot)
 			{
-				case 0: return 21;
-				case 1: return 12;
-				case 2: return 2;
+				case 0: return 21; case 1: return 12; case 2: return 2;
 			}
 		}
 		case TFClass_Spy:
 		{
 			switch(slot)
 			{
-				case 0: return 24;
-				case 1: return 735;
-				case 2: return 4;
-				case 4: return 30;
+				case 0: return 24; case 1: return 735; case 2: return 4; case 4: return 30;
 			}
 		}
 		case TFClass_Engineer:
 		{
 			switch(slot)
 			{
-				case 0: return 9;
-				case 1: return 22;
-				case 2: return 7;
-				case 3: return 25;
+				case 0: return 9; case 1: return 22; case 2: return 7; case 3: return 25;
 			}
 		}
 	}
@@ -4427,12 +4661,10 @@ stock int TF2_GetDefaultWeaponID(TFClassType class, int slot)
 **/
 stock int TF2_GetHealerByIndex(int client, int index)
 {
-	if (!IsPlayerIndex(client) || !IsClientConnected(client) || !IsClientInGame(client) || !IsPlayerAlive(client))
-	{
+	if (client == 0 || client > MaxClients || !IsClientInGame(client) || !IsPlayerAlive(client))
 		return 0;
-	}
 
-	int m_aHealers = FindSendPropInfo("CTFPlayer", "m_nNumHealers") + 12;
+	int m_aHealers = FindSendProinfo("CTFPlayer", "m_nNumHealers") + 12;
 
 	Address m_Shared = GetEntityAddress(client) + view_as<Address>(m_aHealers);
 	Address aHealers = view_as<Address>(LoadFromAddress(m_Shared, NumberType_Int32));
@@ -4449,10 +4681,8 @@ stock int TF2_GetHealerByIndex(int client, int index)
 **/
 stock int TF2_GetHealerCount(int client)
 {
-	if (!IsPlayerIndex(client) || !IsClientConnected(client) || !IsClientInGame(client) || !IsPlayerAlive(client) || !HasEntProp(client, Prop_Send, "m_nNumHealers"))
-	{
+	if (client == 0 || client > MaxClients || !IsClientInGame(client) || !IsPlayerAlive(client) || !HasEntProp(client, Prop_Send, "m_nNumHealers"))
 		return 0;
-	}
 
 	return GetEntProp(client, Prop_Send, "m_nNumHealers");
 }
@@ -4467,48 +4697,53 @@ stock int TF2_GetHealerCount(int client)
 **/
 stock bool TF2_IsCurrentHealer(int client, int healer)
 {
-	if (!IsPlayerIndex(client) || !IsClientConnected(client) || !IsClientInGame(client) || !IsPlayerAlive(client) || !IsPlayerIndex(healer) || !IsClientConnected(healer) || !IsClientInGame(healer) || !IsPlayerAlive(healer) || TF2_GetPlayerClass(healer) != TFClass_Medic)
-	{
+	if (client == 0 || client > MaxClients || !IsClientInGame(client) || !IsPlayerAlive(client) || !IsPlayerIndex(healer) || !IsClientInGame(healer) || !IsPlayerAlive(healer) || TF2_GetPlayerClass(healer) != TFClass_Medic)
 		return false;
-	}
 
 	int healers;
 
-	if ((healers = TF2_GetHealerCount(client)) == 0)
-	{
+	if ((healers = GetEntProp(client, Prop_Send, "m_nNumHealers")) == 0)
 		return false;
-	}
 
 	for (int i = 0; i < healers; i++)
 	{
 		if (TF2_GetHealerByIndex(client, i) == healer)
-		{
 			return true;
-		}
 	}
 
 	return false;
 }
 
+/**
+*	Returns a value for the TFTeam enum based on a name string.
+*
+*	team	Name of the team.
+*
+*	return	TFTeam enum value.
+**/
 stock TFTeam TF2_GetTeam(const char[] team)
 {
 	if (StrEqual(team, "1") || StrEqual(team, "spec", false) || StrEqual(team, "spectate", false) || StrEqual(team, "spectator", false) || StrEqual(team, "spectators", false))
-	{
 		return TFTeam_Spectator;
-	}
 	else if (StrEqual(team, "2") || StrEqual(team, "red", false))
-	{
 		return TFTeam_Red;
-	}
 	else if (StrEqual(team, "3") || StrEqual(team, "blu", false) || StrEqual(team, "blue", false))
-	{
 		return TFTeam_Blue;
-	}
 
 	return TFTeam_Unassigned;
 }
 
-stock int TF2_CreateRagdoll(int client, float destruct = 0.0, bool gold_ragdoll = false, bool ice_ragdoll = false)
+/**
+*	Spawns a ragdoll for the player.
+*
+*	client			Client index.
+*	destruct		Time in seconds for the ragdoll to delete itself.
+*	gold_ragdoll	Turn the ragdoll to gold.
+*	ice_ragdoll	Turn the ragdoll to ice.
+*
+*	return	Entity index.
+**/
+stock int TF2_CreateRagdoll(int client, float destruct = 10.0, bool gold_ragdoll = false, bool ice_ragdoll = false)
 {
 	int ragdoll = CreateEntityByName("tf_ragdoll");
 
@@ -4528,20 +4763,40 @@ stock int TF2_CreateRagdoll(int client, float destruct = 0.0, bool gold_ragdoll 
 		SetEntProp(ragdoll, Prop_Send, "m_iTeam", GetClientTeam(client));
 		SetEntProp(ragdoll, Prop_Send, "m_iClass", view_as<int>(TF2_GetPlayerClass(client)));
 		SetEntProp(ragdoll, Prop_Send, "m_bOnGround", 1);
+		
+		//Makes sure the ragdoll isn't malformed on spawn.
+		SetEntPropFloat(ragdoll, Prop_Send, "m_flHeadScale", 1.0);
+		SetEntPropFloat(ragdoll, Prop_Send, "m_flTorsoScale", 1.0);
+		SetEntPropFloat(ragdoll, Prop_Send, "m_flHandScale", 1.0);
 
 		SetEntityMoveType(ragdoll, MOVETYPE_NONE);
-
+		
 		DispatchSpawn(ragdoll);
 		ActivateEntity(ragdoll);
+		
+		SetEntPropEnt(client, Prop_Send, "m_hRagdoll", ragdoll, 0);
+		
+		if (destruct > 0.0)
+		{
+			char output[64];
+			Format(output, sizeof(output), "OnUser1 !self:kill::%.1f:1", destruct);
 
-		SetEntitySelfDestruct(ragdoll, destruct);
-
-		return ragdoll;
+			SetVariantString(output);
+			AcceptEntityInput(ragdoll, "AddOutput");
+			AcceptEntityInput(ragdoll, "FireUser1");
+		}
 	}
 
-	return -1;
+	return ragdoll;
 }
 
+/**
+*	Destroys the ragdoll of a player.
+*
+*	client			Client index.
+*
+*	return	Entity removed or not.
+**/
 stock bool TF2_RemoveRagdoll(int client)
 {
 	int ragdoll = GetEntPropEnt(client, Prop_Send, "m_hRagdoll");
@@ -4552,10 +4807,363 @@ stock bool TF2_RemoveRagdoll(int client)
 		GetEdictClassname(ragdoll, classname, sizeof(classname));
 
 		if (StrEqual(classname, "tf_ragdoll", false))
-		{
 			RemoveEdict(ragdoll);
+		
+		return true;
+	}
+	
+	return false;
+}
+
+/**
+*	Regenerate all players on the server.
+*
+*	return	void
+**/
+stock void TF2_RegenerateAllPlayers()
+{
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (!IsClientInGame(i) || !IsPlayerAlive(i))
+			continue;
+		
+		TF2_RegeneratePlayer(i);
+	}
+}
+
+/**
+*	Sets the clients head size.
+*
+*	client			Client index.
+*	size			Size to set.
+*
+*	return	void
+**/
+stock void TF2_SetHeadSize(int client, float size = 1.0)
+{
+	SetEntPropFloat(client, Prop_Send, "m_flHeadScale", size);
+}
+
+/**
+*	Resets the clients head size.
+*
+*	client			Client index.
+*
+*	return	void
+**/
+stock void TF2_ResetHeadSize(int client)
+{
+	SetEntPropFloat(client, Prop_Send, "m_flHeadScale", 1.0);
+}
+
+/**
+*	Sets the clients torso size.
+*
+*	client			Client index.
+*	size			Size to set.
+*
+*	return	void
+**/
+stock void TF2_SetTorsoSize(int client, float size = 1.0)
+{
+	SetEntPropFloat(client, Prop_Send, "m_flTorsoScale", size);
+}
+
+/**
+*	Resets the clients torso size.
+*
+*	client			Client index.
+*
+*	return	void
+**/
+stock void TF2_ResetTorsoSize(int client)
+{
+	SetEntPropFloat(client, Prop_Send, "m_flTorsoScale", 1.0);
+}
+
+/**
+*	Sets the clients hand size.
+*
+*	client			Client index.
+*	size			Size to set.
+*
+*	return	void
+**/
+stock void TF2_SetHandSize(int client, float size = 1.0)
+{
+	SetEntPropFloat(client, Prop_Send, "m_flHandScale", size);
+}
+
+/**
+*	Resets the clients hand size.
+*
+*	client			Client index.
+*
+*	return	void
+**/
+stock void TF2_ResetHandSize(int client)
+{
+	SetEntPropFloat(client, Prop_Send, "m_flHandScale", 1.0);
+}
+
+/**
+*	Resets all model sizes for a client.
+*
+*	client			Client index.
+*
+*	return	void
+**/
+stock void TF2_ResetSizes(int client)
+{
+	SetEntPropFloat(client, Prop_Send, "m_flHeadScale", 1.0);
+	SetEntPropFloat(client, Prop_Send, "m_flTorsoScale", 1.0);
+	SetEntPropFloat(client, Prop_Send, "m_flHandScale", 1.0);
+}
+
+/**
+*	Sets the client to not be targetted by sentries or not.
+*
+*	client			Client index.
+*	target			Target boolean.
+*
+*	return	void
+**/
+stock void TF2_SentryTarget(int client, bool target = true)
+{
+	SetEntityFlags(client, !target ? (GetEntityFlags(client) | FL_NOTARGET) : (GetEntityFlags(client) &~ FL_NOTARGET));
+}
+
+/**
+*	Spawns a Sentry.
+*
+*	builder			Builder index.
+*	Position		Position of the Sentry.
+*	Angle			Angle of the Sentry.
+*	level			Sentry level.
+*	mini			Is Mini?
+*	disposable		Is Disposable?
+*
+*	return	Entity index.
+**/
+stock int TF2_SpawnSentry(int builder, float Position[3], float Angle[3], TFTeam team = TFTeam_Unassigned, int level = 0, bool mini = false, bool disposable = false)
+{
+	static const float m_vecMinsMini[3] = {-15.0, -15.0, 0.0}, m_vecMaxsMini[3] = {15.0, 15.0, 49.5};
+	static const float m_vecMinsDisp[3] = {-13.0, -13.0, 0.0}, m_vecMaxsDisp[3] = {13.0, 13.0, 42.9};
+	
+	int sentry = CreateEntityByName("obj_sentrygun");
+	
+	if (IsValidEntity(sentry))
+	{
+		char sLevel[12];
+		IntToString(level, sLevel, sizeof(sLevel));
+		
+		if (builder > 0)
+			AcceptEntityInput(sentry, "SetBuilder", builder);
+
+		SetVariantInt(view_as<int>(team));
+		AcceptEntityInput(sentry, "SetTeam");
+		
+		DispatchKeyValueVector(sentry, "origin", Position);
+		DispatchKeyValueVector(sentry, "angles", Angle);
+		DispatchKeyValue(sentry, "defaultupgrade", sLevel);
+		DispatchKeyValue(sentry, "spawnflags", "4");
+		SetEntProp(sentry, Prop_Send, "m_bBuilding", 1);
+		
+		if (mini || disposable)
+		{
+			SetEntProp(sentry, Prop_Send, "m_bMiniBuilding", 1);
+			SetEntProp(sentry, Prop_Send, "m_nSkin", level == 0 ? view_as<int>(team) : view_as<int>(team) - 2);
+		}
+		
+		if (mini)
+		{
+			DispatchSpawn(sentry);
+			
+			SetVariantInt(100);
+			AcceptEntityInput(sentry, "SetHealth");
+			
+			SetEntPropFloat(sentry, Prop_Send, "m_flModelScale", 0.75);
+			SetEntPropVector(sentry, Prop_Send, "m_vecMins", m_vecMinsMini);
+			SetEntPropVector(sentry, Prop_Send, "m_vecMaxs", m_vecMaxsMini);
+		}
+		else if (disposable)
+		{
+			SetEntProp(sentry, Prop_Send, "m_bDisposableBuilding", 1);
+			DispatchSpawn(sentry);
+			
+			SetVariantInt(100);
+			AcceptEntityInput(sentry, "SetHealth");
+			
+			SetEntPropFloat(sentry, Prop_Send, "m_flModelScale", 0.60);
+			SetEntPropVector(sentry, Prop_Send, "m_vecMins", m_vecMinsDisp);
+			SetEntPropVector(sentry, Prop_Send, "m_vecMaxs", m_vecMaxsDisp);
+		}
+		else
+		{
+			SetEntProp(sentry, Prop_Send, "m_nSkin", view_as<int>(team) - 2);
+			DispatchSpawn(sentry);
 		}
 	}
+	
+	return sentry;
+}
+
+/**
+*	Spawns a Dispenser.
+*
+*	builder			Builder index.
+*	Position		Position of the Dispenser.
+*	Angle			Angle of the Dispenser.
+*	level			Dispenser level.
+*
+*	return	Entity index.
+**/
+stock int TF2_SpawnDispenser(int builder, float Position[3], float Angle[3], TFTeam team = TFTeam_Unassigned, int level = 0)
+{
+	int dispenser = CreateEntityByName("obj_dispenser");
+	
+	if (IsValidEntity(dispenser))
+	{
+		char sLevel[12];
+		IntToString(level, sLevel, sizeof(sLevel));
+		
+		DispatchKeyValueVector(dispenser, "origin", Position);
+		DispatchKeyValueVector(dispenser, "angles", Angle);
+		DispatchKeyValue(dispenser, "defaultupgrade", sLevel);
+		DispatchKeyValue(dispenser, "spawnflags", "4");
+		SetEntProp(dispenser, Prop_Send, "m_bBuilding", 1);
+		DispatchSpawn(dispenser);
+
+		SetVariantInt(view_as<int>(team));
+		AcceptEntityInput(dispenser, "SetTeam");
+		SetEntProp(dispenser, Prop_Send, "m_nSkin", view_as<int>(team) - 2);
+		
+		ActivateEntity(dispenser);
+		
+		AcceptEntityInput(dispenser, "SetBuilder", builder);
+	}
+	
+	return dispenser;
+}
+
+/**
+*	Spawns a Teleporter.
+*
+*	builder			Builder index.
+*	Position		Position of the Teleporter.
+*	Angle			Angle of the Teleporter.
+*	level			Teleporter level.
+*	mode			Mode of the Teleporter. (TFObjectMode_None, TFObjectMode_Entrance, TFObjectMode_Exit)
+*
+*	return	Entity index.
+**/
+stock int TF2_SpawnTeleporter(int builder, float Position[3], float Angle[3], TFTeam team = TFTeam_Unassigned, int level = 0, TFObjectMode mode)
+{
+	int teleporter = CreateEntityByName("obj_teleporter");
+	
+	if (IsValidEntity(teleporter))
+	{
+		char sLevel[12];
+		IntToString(level, sLevel, sizeof(sLevel));
+		
+		DispatchKeyValueVector(teleporter, "origin", Position);
+		DispatchKeyValueVector(teleporter, "angles", Angle);
+		DispatchKeyValue(teleporter, "defaultupgrade", sLevel);
+		DispatchKeyValue(teleporter, "spawnflags", "4");
+		
+		SetEntProp(teleporter, Prop_Send, "m_bBuilding", 1);
+		SetEntProp(teleporter, Prop_Data, "m_iTeleportType", mode);
+		SetEntProp(teleporter, Prop_Send, "m_iObjectMode", mode);
+		SetEntProp(teleporter, Prop_Send, "m_nSkin", view_as<int>(team) - 2);
+		DispatchSpawn(teleporter);
+		
+		AcceptEntityInput(teleporter, "SetBuilder", builder);
+		
+		SetVariantInt(view_as<int>(team));
+		AcceptEntityInput(teleporter, "SetTeam");
+	}
+	
+	return teleporter;
+}
+
+/**
+*	Destroys all buildings owned by a player.
+*
+*	builder		Builder index.
+*	damage		Whether to damage the building to 0 health or to just kill the entity.
+*
+*	return	N/A
+**/
+stock void TF2_DestroyBuildings(int builder, bool damage = true)
+{
+	int entity = -1;
+	while ((entity = FindEntityByClassname(entity, "obj_*")) != -1)
+	{
+		if (GetEntPropEnt(entity, Prop_Send, "m_hBuilder") != builder)
+			continue;
+		
+		if (damage)
+			SDKHooks_TakeDamage(entity, 0, 0, 99999.0);
+		else
+			AcceptEntityInput(entity, "Kill");
+	}
+}
+
+/**
+*	Destroys all buildings owned by a team.
+*
+*	team		Team index.
+*	damage		Whether to damage the building to 0 health or to just kill the entity.
+*
+*	return	N/A
+**/
+stock void TF2_DestroyBuildingsTeam(TFTeam team, bool damage = true)
+{
+	int entity = -1; int builder = -1;
+	while ((entity = FindEntityByClassname(entity, "obj_*")) != -1)
+	{
+		builder = GetEntPropEnt(entity, Prop_Send, "m_hBuilder");
+		
+		if (builder < 1 || builder > MaxClients|| TF2_GetClientTeam(builder) != team)
+			continue;
+		
+		if (damage)
+			SDKHooks_TakeDamage(entity, 0, 0, 99999.0);
+		else
+			AcceptEntityInput(entity, "Kill");
+	}
+}
+
+/**
+*	Destroys all buildings.
+*
+*	damage		Whether to damage the building to 0 health or to just kill the entity.
+*
+*	return	N/A
+**/
+stock void TF2_DestroyBuildingsAll(bool damage = true)
+{
+	int entity = -1; int builder = -1;
+	while ((entity = FindEntityByClassname(entity, "obj_*")) != -1)
+	{
+		if (damage)
+			SDKHooks_TakeDamage(entity, 0, 0, 99999.0);
+		else
+			AcceptEntityInput(entity, "Kill");
+	}
+}
+
+/**
+*	Enables or disables a building.
+*
+*	building	Building Index.
+*	status		Enabled or Disabled?
+*
+*	return	N/A
+**/
+stock void TF2_DisableBuilding(int building, bool status = true)
+{
+	SetEntProp(building, Prop_Send, "m_bDisabled", status);
 }
 
 /*--------------------------------------------------------->
@@ -4575,6 +5183,21 @@ stock bool TF2_RemoveRagdoll(int client)
 
 - Credits: SM9();
 --------------------------------------------------------->*/
+
+//Lighting styles for light_dynamic entities.
+#define LIGHT_STYLE_NORMAL 0
+#define LIGHT_STYLE_FLICKER_A 1
+#define LIGHT_STYLE_SLOW_STRONG_PULSE 2
+#define LIGHT_STYLE_CANDLE_A 3
+#define LIGHT_STYLE_FAST_STROBE 4
+#define LIGHT_STYLE_GENTLE_PULSE 5
+#define LIGHT_STYLE_FLICKER_B 6
+#define LIGHT_STYLE_CANDLE_B 7
+#define LIGHT_STYLE_CANDLE_C 8
+#define LIGHT_STYLE_SLOW_STROBE 9
+#define LIGHT_STYLE_FLOURESCENT_FLICKER 10
+#define LIGHT_STYLE_SLOW_PULSE_NO_BLACK 11
+#define LIGHT_STYLE_UNDERWATER_LIGHT_MUTATION 12
 
 /**
 *	A simple stock to show hud text to all in CSGO.
@@ -4596,11 +5219,40 @@ stock bool TF2_RemoveRagdoll(int client)
 **/
 stock void CSGO_ShowHudTextAll(char[] message, char[] x = "-1.0", char[] y = "-1.0", char[] channel = "0", char[] color = "255 255 255", char[] color2 = "0 0 0", char[] effect = "0", char[] fadein = "1.5", char[] fadeout = "0.5", char[] fxtime = "0.5", char[] holdtime = "5.0", char[] spawnflags = "0")
 {
+	char output[64];
+	Format(output, sizeof(output), "OnUser1 !self:kill::%.1f:1", StringToFloat(holdtime));
+	
+	int entity;
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		if (IsClientInGame(i) && !IsFakeClient(i))
+		if (!IsClientInGame(i) || IsFakeClient(i))
+			continue;
+		
+		entity = CreateEntityByName("game_text");
+
+		if (IsValidEntity(entity))
 		{
-			CSGO_ShowHudText(i, message, x, y, channel, color, color2, effect, fadein, fadeout, fxtime, holdtime, spawnflags);
+			DispatchKeyValue(entity, "channel", channel);
+			DispatchKeyValue(entity, "color", color);
+			DispatchKeyValue(entity, "color2", color2);
+			DispatchKeyValue(entity, "effect", effect);
+			DispatchKeyValue(entity, "fadein", fadein);
+			DispatchKeyValue(entity, "fadeout", fadeout);
+			DispatchKeyValue(entity, "fxtime", fxtime);
+			DispatchKeyValue(entity, "holdtime", holdtime);
+			DispatchKeyValue(entity, "message", message);
+			DispatchKeyValue(entity, "spawnflags", spawnflags);
+			DispatchKeyValue(entity, "x", x);
+			DispatchKeyValue(entity, "y", y);
+			DispatchSpawn(entity);
+
+			SetVariantString("!activator");
+			AcceptEntityInput(entity, "display", i);
+			
+			//Automatically kill the entity.
+			SetVariantString(output);
+			AcceptEntityInput(entity, "AddOutput");
+			AcceptEntityInput(entity, "FireUser1");
 		}
 	}
 }
@@ -4646,9 +5298,10 @@ stock void CSGO_ShowHudText(int client, char[] message, char[] x = "-1.0", char[
 
 		SetVariantString("!activator");
 		AcceptEntityInput(entity, "display", client);
-
+		
+		//Automatically kill the entity.
 		char output[64];
-		Format(output, sizeof(output), "OnUser1 !self:kill::%.1f:1", 10.0);
+		Format(output, sizeof(output), "OnUser1 !self:kill::%.1f:1", StringToFloat(holdtime));
 
 		SetVariantString(output);
 		AcceptEntityInput(entity, "AddOutput");
@@ -4666,28 +5319,24 @@ stock void CSGO_ShowHudText(int client, char[] message, char[] x = "-1.0", char[
 stock void CSGO_StripToKnife(int client)
 {
 	int weapon;
-	for (int i = 0; i < 4; i++)
+	for (int i = 0; i < 3; i++)
 	{
 		if (i == CS_SLOT_KNIFE)
 		{
 			weapon = GetPlayerWeaponSlot(client, i);
 
 			if (IsValidEntity(i))
-			{
 				EquipPlayerWeapon(i, weapon);
-			}
 
 			continue;
 		}
 
-		if ((weapon = GetPlayerWeaponSlot(client, i)) != INVALID_ENT_INDEX)
+		if ((weapon = GetPlayerWeaponSlot(client, i)) != -1)
 		{
 			if (GetEntPropEnt(weapon, Prop_Send, "m_hOwnerEntity") != client)
-			{
 				SetEntPropEnt(weapon, Prop_Send, "m_hOwnerEntity", client);
-			}
 
-			SDKHooks_DropWeapon(client, weapon, NULL_VECTOR, NULL_VECTOR);
+			SDKHooks_Droweapon(client, weapon, NULL_VECTOR, NULL_VECTOR);
 			AcceptEntityInput(weapon, "Kill");
 		}
 	}
@@ -4711,31 +5360,27 @@ stock void CSGO_SetClientArmor(int client, int amount = 100)
 *
 *	client	Client index.
 *	slot	Slot to set the weapon to.
-*	classname	Entity classname of the weapon to replace the slot with.
+*	class	Entity classname of the weapon to replace the slot with.
 *
 *	return	Entity index of the new weapon.
 **/
-stock int CSGO_ReplaceWeapon(int client, int slot, const char[] classname)
+stock int CSGO_ReplaceWeapon(int client, int slot, const char[] class)
 {
 	int weapon = GetPlayerWeaponSlot(client, slot);
 
 	if (IsValidEntity(weapon))
 	{
 		if (GetEntPropEnt(weapon, Prop_Send, "m_hOwnerEntity") != client)
-		{
 			SetEntPropEnt(weapon, Prop_Send, "m_hOwnerEntity", client);
-		}
 
-		CS_DropWeapon(client, weapon, false, true);
+		CS_Droweapon(client, weapon, false, true);
 		AcceptEntityInput(weapon, "Kill");
 	}
 
-	weapon = GivePlayerItem(client, classname);
+	weapon = GivePlayerItem(client, class);
 
 	if (IsValidEntity(weapon))
-	{
 		EquipPlayerWeapon(client, weapon);
-	}
 
 	return weapon;
 }
@@ -4760,9 +5405,16 @@ stock int CSGO_GetMoney(int client)
 *
 *	return	void
 **/
-stock void CSGO_SetMoney(int client, int money)
+stock void CSGO_SetMoney(int client, int amount)
 {
-	SetEntProp(client, Prop_Send, "m_iAccount", ClampCell(money, 0, CSGO_GetMaxMoney()));
+	if (amount < 0)
+		amount = 0;
+	
+	int max = FindConVar("mp_maxmoney").IntValue;
+	if (amount > max)
+		amount = max;
+	
+	SetEntProp(client, Prop_Send, "m_iAccount", amount);
 }
 
 /**
@@ -4802,7 +5454,72 @@ stock void CSGO_SetTeam(int client, int team)
 	CS_UpdateClientModel(client);
 }
 
+/**
+*	Sets the current speed of the client.
+*
+*	client	Client index.
+*	speed	Speed to give.
+*
+*	return	void
+**/
+stock void CSGO_SetPlayerSpeed(int client, float speed)
+{
+	SetEntPropFloat(client, Prop_Send, "m_flLaggedMovementValue", speed);
+}
+
+/**
+*	Gets the current speed of the client.
+*
+*	client	Client index.
+*
+*	return	Speed of the client.
+**/
+stock float CSGO_GetPlayerSpeed(int client)
+{
+	return GetEntPropFloat(client, Prop_Send, "m_flLaggedMovementValue");
+}
+
+/**
+*	Creates a dynamic light on the map.
+*
+*	origin		Position of the light.
+*	color		Color of the light.
+*	brightness	Brightness of the light.
+*	style		Style of the light.
+*	radius		Radius of the light.
+*	distance	Distance of the light.
+*
+*	return	Speed of the client.
+**/
+stock int CSGO_CreateDynamicLight(float origin[3], int color[4] = {255, 255, 255, 255}, int brightness = 10, int style = LIGHT_STYLE_NORMAL, const float radius = 32.0, const float distance = 64.0)
+{
+	int light = CreateEntityByName("light_dynamic");
+	
+	if (IsValidEntity(light))
+    {
+		char sColor[64];
+		FormatEx(sColor, sizeof(sColor), "%i %i %i %i", color[0], color[1], color[2], color[3]);
+        DispatchKeyValue(light, "_light", sColor);
+		
+		char sBrightness[12];
+		FormatEx(sBrightness, sizeof(sBrightness), "%i", brightness);
+        DispatchKeyValue(light, "brightness", sBrightness);
+		
+		char sStyle[12];
+		FormatEx(sStyle, sizeof(sStyle), "%i", style);
+        DispatchKeyValue(light, "style", sStyle);
+		
+        DispatchKeyValueFloat(light, "spotlight_radius", radius);
+        DispatchKeyValueFloat(light, "distance", distance);
+        DispatchSpawn(light);
+        
+        TeleportEntity(light, origin, NULL_VECTOR, NULL_VECTOR);
+        AcceptEntityInput(light, "TurnOn");
+    }
+	
+	return light;
+}
+
 /*--------------------------------------------------------->*/
 //This is the end of this THICCCCCC include file.
 /*--------------------------------------------------------->*/
-//test

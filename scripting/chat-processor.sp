@@ -8,7 +8,7 @@
 #define PLUGIN_NAME "Chat-Processor"
 #define PLUGIN_AUTHOR "Keith Warren (Shaders Allen)"
 #define PLUGIN_DESCRIPTION "Replacement for Simple Chat Processor."
-#define PLUGIN_VERSION "2.1.4"
+#define PLUGIN_VERSION "2.1.5"
 #define PLUGIN_CONTACT "http://www.shadersallen.com/"
 
 ////////////////////
@@ -32,13 +32,13 @@ ConVar convar_AddGOTV;
 
 EngineVersion engine;
 
-Handle hForward_OnChatMessage;
-Handle hForward_OnChatMessagePost;
+Handle g_Forward_OnChatMessage;
+Handle g_Forward_OnChatMessagePost;
 
-StringMap hTrie_MessageFormats;
+StringMap g_MessageFormats;
 
-bool bProto;
-bool bNewMsg[MAXPLAYERS + 1];
+bool g_Proto;
+bool g_NewMSG[MAXPLAYERS + 1];
 
 ////////////////////
 // Plugin Info
@@ -56,10 +56,11 @@ public Plugin myinfo =
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
 	RegPluginLibrary("chat-processor");
+	
 	CreateNative("ChatProcessor_GetFlagFormatString", Native_GetFlagFormatString);
 
-	hForward_OnChatMessage = CreateGlobalForward("CP_OnChatMessage", ET_Hook, Param_CellByRef, Param_Cell, Param_String, Param_String, Param_String, Param_CellByRef, Param_CellByRef);
-	hForward_OnChatMessagePost = CreateGlobalForward("CP_OnChatMessagePost", ET_Ignore, Param_Cell, Param_Cell, Param_String, Param_String, Param_String, Param_String, Param_Cell, Param_Cell);
+	g_Forward_OnChatMessage = CreateGlobalForward("CP_OnChatMessage", ET_Hook, Param_CellByRef, Param_Cell, Param_String, Param_String, Param_String, Param_CellByRef, Param_CellByRef);
+	g_Forward_OnChatMessagePost = CreateGlobalForward("CP_OnChatMessagePost", ET_Ignore, Param_Cell, Param_Cell, Param_String, Param_String, Param_String, Param_String, Param_Cell, Param_Cell);
 
 	engine = GetEngineVersion();
 	return APLRes_Success;
@@ -86,7 +87,7 @@ public void OnPluginStart()
 	convar_AddGOTV = CreateConVar("sm_chatprocessor_addgotv", "1", "Add GOTV client to recipients list. (Only effects games with GOTV or SourceTV)", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	AutoExecConfig();
 
-	hTrie_MessageFormats = new StringMap();
+	g_MessageFormats = new StringMap();
 }
 
 ////////////////////
@@ -94,9 +95,7 @@ public void OnPluginStart()
 public void OnConfigsExecuted()
 {
 	if (!convar_Status.BoolValue)
-	{
 		return;
-	}
 
 	char sGame[64];
 	GetGameFolderName(sGame, sizeof(sGame));
@@ -106,7 +105,7 @@ public void OnConfigsExecuted()
 
 	GenerateMessageFormats(sConfig, sGame);
 
-	bProto = CanTestFeatures() && GetFeatureStatus(FeatureType_Native, "GetUserMessageType") == FeatureStatus_Available && GetUserMessageType() == UM_Protobuf;
+	g_Proto = CanTestFeatures() && GetFeatureStatus(FeatureType_Native, "GetUserMessageType") == FeatureStatus_Available && GetUserMessageType() == UM_Protobuf;
 
 	UserMsg SayText2 = GetUserMessageId("SayText2");
 
@@ -116,9 +115,7 @@ public void OnConfigsExecuted()
 		LogMessage("Successfully hooked a SayText2 chat hook.");
 	}
 	else
-	{
 		SetFailState("Error loading the plugin, SayText2 is unavailable.");
-	}
 }
 
 ////////////////////
@@ -126,9 +123,7 @@ public void OnConfigsExecuted()
 public Action OnClientSayCommand(int client, const char[] command, const char[] sArgs)
 {
 	if (convar_Status.BoolValue && client > 0 && StrContains(command, "say") != -1)
-	{
-		bNewMsg[client] = true;
-	}
+		g_NewMSG[client] = true;
 }
 
 ////////////////////
@@ -137,34 +132,26 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 {
 	//Check if the plugin is disabled.
 	if (!convar_Status.BoolValue)
-	{
 		return Plugin_Continue;
-	}
 
 	//Retrieve the client sending the message to other clients.
-	int iSender = bProto ? PbReadInt(msg, "ent_idx") : BfReadByte(msg);
+	int iSender = g_Proto ? PbReadInt(msg, "ent_idx") : BfReadByte(msg);
 
 	if (iSender <= 0)
-	{
 		return Plugin_Continue;
-	}
 
 	//Stops double messages in-general.
-	if (bNewMsg[iSender])
-	{
-		bNewMsg[iSender] = false;
-	}
+	if (g_NewMSG[iSender])
+		g_NewMSG[iSender] = false;
 	else if (reliable)	//Fix for other plugins that use SayText2 I guess?
-	{
 		return Plugin_Stop;
-	}
 
 	//Chat Type
-	bool bChat = bProto ? PbReadBool(msg, "chat") : view_as<bool>(BfReadByte(msg));
+	bool bChat = g_Proto ? PbReadBool(msg, "chat") : view_as<bool>(BfReadByte(msg));
 
 	//Retrieve the name of template name to use when getting the format.
 	char sFlag[MAXLENGTH_FLAG];
-	switch (bProto)
+	switch (g_Proto)
 	{
 		case true: PbReadString(msg, "msg_name", sFlag, sizeof(sFlag));
 		case false: BfReadString(msg, sFlag, sizeof(sFlag));
@@ -172,14 +159,12 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 
 	//Retrieve the format template based on the flag name above we retrieved.
 	char sFormat[MAXLENGTH_BUFFER];
-	if (!hTrie_MessageFormats.GetString(sFlag, sFormat, sizeof(sFormat)))
-	{
+	if (!g_MessageFormats.GetString(sFlag, sFormat, sizeof(sFormat)))
 		return Plugin_Continue;
-	}
 
 	//Get the name string of the client.
 	char sName[MAXLENGTH_NAME];
-	switch (bProto)
+	switch (g_Proto)
 	{
 		case true: PbReadString(msg, "params", sName, sizeof(sName), 0);
 		case false: if (BfGetNumBytesLeft(msg)) BfReadString(msg, sName, sizeof(sName));
@@ -187,7 +172,7 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 
 	//Get the message string that the client is wanting to send.
 	char sMessage[MAXLENGTH_MESSAGE];
-	switch (bProto)
+	switch (g_Proto)
 	{
 		case true: PbReadString(msg, "params", sMessage, sizeof(sMessage), 1);
 		case false: if (BfGetNumBytesLeft(msg)) BfReadString(msg, sMessage, sizeof(sMessage));
@@ -200,6 +185,7 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 	{
 		char sFlags[32];
 		convar_ColorsFlags.GetString(sFlags, sizeof(sFlags));
+		
 		if (!strlen(sFlags) || !CheckAdminFlagsByString(iSender, sFlags))
 		{
 			CRemoveColors(sName, sizeof(sName));
@@ -218,33 +204,20 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 	for (int i = 1; i < MaxClients; i++)
 	{
 		if (!IsClientInGame(i) || (!convar_AddGOTV.BoolValue && IsFakeClient(i)))
-		{
 			continue;
-		}
 
-		if (convar_AddGOTV.BoolValue && IsFakeClient(i) && IsClientSourceTV(i))
-		{
-			if (hRecipients.FindValue(GetClientUserId(i)) == -1)
-			{
-				hRecipients.Push(GetClientUserId(i));
-			}
-		}
+		if (convar_AddGOTV.BoolValue && IsFakeClient(i) && IsClientSourceTV(i) && hRecipients.FindValue(GetClientUserId(i)) == -1)
+			hRecipients.Push(GetClientUserId(i));
 
 		if (bRestrictDeadChat && !IsPlayerAlive(iSender))
-		{
 			continue;
-		}
 
 		if (!IsPlayerAlive(iSender) && !bDeadTalk && IsPlayerAlive(i))
-		{
 			continue;
-		}
 
 		if (!bAllTalk && StrContains(sFlag, "_All") == -1 && team != GetClientTeam(i))
-		{
 			continue;
-		}
-
+		
 		hRecipients.Push(GetClientUserId(i));
 	}
 
@@ -263,7 +236,7 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 	strcopy(sFlagCopy, sizeof(sFlagCopy), sFlag);
 
 	//Fire the pre-forward. https://i.ytimg.com/vi/A2a0Ht01qA8/maxresdefault.jpg
-	Call_StartForward(hForward_OnChatMessage);
+	Call_StartForward(g_Forward_OnChatMessage);
 	Call_PushCellRef(iSender);
 	Call_PushCell(hRecipients);
 	Call_PushStringEx(sFlag, sizeof(sFlag), SM_PARAM_STRING_UTF8|SM_PARAM_STRING_COPY, SM_PARAM_COPYBACK);
@@ -285,21 +258,17 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 	}
 
 	//Check if the flag string was changed after the pre-forward and if so, re-retrieve the format string.
-	if (!StrEqual(sFlag, sFlagCopy) && !hTrie_MessageFormats.GetString(sFlag, sFormat, sizeof(sFormat)))
+	if (!StrEqual(sFlag, sFlagCopy) && !g_MessageFormats.GetString(sFlag, sFormat, sizeof(sFormat)))
 	{
 		delete hRecipients;
 		return Plugin_Continue;
 	}
 
 	if (StrEqual(sNameCopy, sName))
-	{
 		Format(sName, sizeof(sName), "\x03%s", sName);
-	}
 
 	if (StrEqual(sMessageCopy, sMessage))
-	{
 		Format(sMessage, sizeof(sMessage), "\x01%s", sMessage);
-	}
 
 	DataPack hPack = new DataPack();
 	hPack.WriteCell(iSender);
@@ -351,9 +320,7 @@ public void Frame_OnChatMessage_SayText2(DataPack data)
 	delete data;
 
 	if (bRestrictDeadChat)
-	{
 		PrintToChat(iSender, "Dead chat is currently restricted.");
-	}
 
 	//Make a copy of the format buffer and use that as the print so the format string stays the same.
 	char sBuffer[MAXLENGTH_BUFFER];
@@ -361,9 +328,7 @@ public void Frame_OnChatMessage_SayText2(DataPack data)
 
 	//Make sure that the text is default for the message if no colors are present.
 	if (iResults != Plugin_Changed && !bProcessColors || bRemoveColors)
-	{
 		Format(sMessage, sizeof(sMessage), "\x03%s", sMessage);
-	}
 
 	//Replace the specific characters for the name and message strings.
 	ReplaceString(sBuffer, sizeof(sBuffer), "{1}", sName);
@@ -377,9 +342,7 @@ public void Frame_OnChatMessage_SayText2(DataPack data)
 
 		//CSGO quirk where the 1st color in the line won't work..
 		if (engine == Engine_CSGO)
-		{
 			Format(sBuffer, sizeof(sBuffer), " %s", sBuffer);
-		}
 	}
 
 	if (iResults != Plugin_Stop)
@@ -388,14 +351,10 @@ public void Frame_OnChatMessage_SayText2(DataPack data)
 		int client;
 		for (int i = 0; i < hRecipients.Length; i++)
 		{
-			client = GetClientOfUserId(hRecipients.Get(i));
-
-			if (client > 0 && IsClientInGame(client))
+			if ((client = GetClientOfUserId(hRecipients.Get(i))) > 0 && IsClientInGame(client))
 			{
-				if (bProto)
-				{
+				if (g_Proto)
 					CSayText2(client, sBuffer, iSender, bChat);
-				}
 				else
 				{
 					CSetNextAuthor(iSender);
@@ -406,7 +365,7 @@ public void Frame_OnChatMessage_SayText2(DataPack data)
 	}
 
 	//Finally... fire the post-forward after the message has been sent and processed. https://s-media-cache-ak0.pinimg.com/564x/a5/bb/3c/a5bb3c3e05089a40ef01ea082ac39e24.jpg
-	Call_StartForward(hForward_OnChatMessagePost);
+	Call_StartForward(g_Forward_OnChatMessagePost);
 	Call_PushCell(iSender);
 	Call_PushCell(hRecipients);
 	Call_PushString(sFlag);
@@ -432,18 +391,19 @@ void GenerateMessageFormats(const char[] config, const char[] game)
 
 	if (kv.ImportFromFile(sPath) && kv.JumpToKey(game) && kv.GotoFirstSubKey(false))
 	{
-		hTrie_MessageFormats.Clear();
+		g_MessageFormats.Clear();
 
-		do {
+		do
+		{
 			char sName[256];
 			kv.GetSectionName(sName, sizeof(sName));
 
 			char sValue[256];
 			kv.GetString(NULL_STRING, sValue, sizeof(sValue));
 
-			hTrie_MessageFormats.SetString(sName, sValue);
-
-		} while (kv.GotoNextKey(false));
+			g_MessageFormats.SetString(sName, sValue);
+		}
+		while (kv.GotoNextKey(false));
 
 		LogMessage("Message formats generated for game '%s'.", game);
 		delete kv;
@@ -466,7 +426,7 @@ public int Native_GetFlagFormatString(Handle plugin, int numParams)
 	GetNativeString(1, sFlag, iSize + 1);
 
 	char sFormat[MAXLENGTH_BUFFER];
-	hTrie_MessageFormats.GetString(sFlag, sFormat, sizeof(sFormat));
+	g_MessageFormats.GetString(sFlag, sFormat, sizeof(sFormat));
 
 	SetNativeString(2, sFormat, GetNativeCell(3));
 }
@@ -488,16 +448,12 @@ stock bool CheckAdminFlagsByString(int client, const char[] flagString)
 				count++;
 
 				if (GetAdminFlag(admin, view_as<AdminFlag>(i)))
-				{
 					found++;
-				}
 			}
 		}
 
 		if (count == found)
-		{
 			return true;
-		}
 	}
 
 	return false;
