@@ -42,7 +42,7 @@ native void ChatProcessor_GetFlagFormatString(const char[] sFlag, char[] sBuffer
 *  - Plugin_Changed		Fires the post-forward below and prints out a message.
 *  - Plugin_Handled		Fires the post-forward below but doesn't print a message.
 **/
-forward Action CP_OnChatMessage(int & author, ArrayList recipients, char[] flagstring, char[] name, char[] message, bool & processcolors, bool & removecolors);
+forward Action CP_OnChatMessage(int& author, ArrayList recipients, char[] flagstring, char[] name, char[] message, bool & processcolors, bool & removecolors);
 
 /**
 * Called after the chat message is sent to the designated clients by the author.
