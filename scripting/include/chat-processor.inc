@@ -42,7 +42,7 @@ native void ChatProcessor_GetFlagFormatString(const char[] sFlag, char[] sBuffer
 *  - Plugin_Changed		Fires the post-forward below and prints out a message.
 *  - Plugin_Handled		Fires the post-forward below but doesn't print a message.
 **/
-forward Action CP_OnChatMessage(int& author, ArrayList recipients, char[] flagstring, char[] name, char[] message, bool& processcolors, bool& removecolors);
+forward Action CP_OnChatMessage(int & author, ArrayList recipients, char[] flagstring, char[] name, char[] message, bool & processcolors, bool & removecolors);
 
 /**
 * Called after the chat message is sent to the designated clients by the author.
@@ -59,6 +59,18 @@ forward Action CP_OnChatMessage(int& author, ArrayList recipients, char[] flagst
 * noreturn
 **/
 forward void CP_OnChatMessagePost(int author, ArrayList recipients, const char[] flagstring, const char[] formatstring, const char[] name, const char[] message, bool processcolors, bool removecolors);
+
+/**
+* Called before a chat message is sent, here the message is already processed.
+*
+* param sender			Author that sent the message.
+* param reciver			Reciver of the message.
+* param buffer			Message's buffer.
+* param maxlength		Max length of the buffer.
+*
+* noreturn
+**/
+forward Action CP_OnChatMessageSendPre(int sender, int reciever, char[] buffer, int maxlength);
 
 #if !defined REQUIRE_PLUGIN
 public void __pl_chat_processor_SetNTVOptional()
