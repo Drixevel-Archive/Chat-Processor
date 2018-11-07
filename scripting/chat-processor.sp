@@ -34,6 +34,7 @@ EngineVersion engine;
 
 Handle g_Forward_OnChatMessage;
 Handle g_Forward_OnChatMessagePost;
+Handle g_Forward_OnChatMessageSendPre;
 
 StringMap g_MessageFormats;
 
@@ -61,6 +62,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 	g_Forward_OnChatMessage = CreateGlobalForward("CP_OnChatMessage", ET_Hook, Param_CellByRef, Param_Cell, Param_String, Param_String, Param_String, Param_CellByRef, Param_CellByRef);
 	g_Forward_OnChatMessagePost = CreateGlobalForward("CP_OnChatMessagePost", ET_Ignore, Param_Cell, Param_Cell, Param_String, Param_String, Param_String, Param_String, Param_Cell, Param_Cell);
+	g_Forward_OnChatMessageSendPre = CreateGlobalForward("CP_OnChatMessageSendPre", ET_Hook, Param_Cell, Param_Cell, Param_String, Param_Cell);
 
 	engine = GetEngineVersion();
 	return APLRes_Success;
@@ -353,12 +355,34 @@ public void Frame_OnChatMessage_SayText2(DataPack data)
 		{
 			if ((client = GetClientOfUserId(hRecipients.Get(i))) > 0 && IsClientInGame(client))
 			{
+				char sTempBuffer[MAXLENGTH_BUFFER];
+				strcopy(sTempBuffer, sizeof(sTempBuffer), sBuffer);
+				
+				Call_StartForward(g_Forward_OnChatMessageSendPre);
+				Call_PushCell(iSender);
+				Call_PushCell(client);
+				Call_PushStringEx(sTempBuffer, sizeof(sTempBuffer), SM_PARAM_STRING_UTF8|SM_PARAM_STRING_COPY, SM_PARAM_COPYBACK);
+				Call_PushCell(sizeof(sTempBuffer));
+				
+				int error = Call_Finish(iResults);
+				
+				if (error != SP_ERROR_NONE)
+				{
+					delete hRecipients;
+					ThrowNativeError(error, "Global Forward 'CP_OnChatMessageSendPre' has failed to fire. [Error code: %i]", error);
+					return;
+				}
+	
+				if (iResults == Plugin_Stop)
+						continue;
+				
 				if (g_Proto)
-					CSayText2(client, sBuffer, iSender, bChat);
+					CSayText2(client, sTempBuffer, iSender, bChat);
+					
 				else
 				{
 					CSetNextAuthor(iSender);
-					CPrintToChat(client, "%s", sBuffer);
+					CPrintToChat(client, "%s", sTempBuffer);
 				}
 			}
 		}
