@@ -142,12 +142,6 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 	if (iSender <= 0)
 		return Plugin_Continue;
 
-	//Stops double messages in-general.
-	if (g_NewMSG[iSender])
-		g_NewMSG[iSender] = false;
-	else if (reliable)	//Fix for other plugins that use SayText2 I guess?
-		return Plugin_Stop;
-
 	//Chat Type
 	bool bChat = g_Proto ? PbReadBool(msg, "chat") : view_as<bool>(BfReadByte(msg));
 
@@ -163,7 +157,13 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 	char sFormat[MAXLENGTH_BUFFER];
 	if (!g_MessageFormats.GetString(sFlag, sFormat, sizeof(sFormat)))
 		return Plugin_Continue;
-
+	
+	//Stops double messages in-general.
+	if (g_NewMSG[iSender])
+		g_NewMSG[iSender] = false;
+	else if (reliable)	//Fix for other plugins that use SayText2 I guess?
+		return Plugin_Stop;
+	
 	//Get the name string of the client.
 	char sName[MAXLENGTH_NAME];
 	switch (g_Proto)
