@@ -9,6 +9,7 @@
 #define MAXLENGTH_MESSAGE	128
 #define MAXLENGTH_BUFFER	255
 
+////////////////////////////
 //Natives
 /**
 * Retrieves the current format string assigned from a flag string.
@@ -23,6 +24,14 @@
 **/
 native void ChatProcessor_GetFlagFormatString(const char[] sFlag, char[] sBuffer, int iSize);
 
+native bool ChatProcessor_AddClientTag(int client, const char[] tag);
+native bool ChatProcessor_RemoveClientTag(int client, const char[] tag);
+native bool ChatProcessor_SwapClientTags(int client, const char[] tag1, const char[] tag2);
+native bool ChatProcessor_SetTagColor(int client, const char[] tag, const char[] color);
+native bool ChatProcessor_SetNameColor(int client, const char[] color);
+native bool ChatProcessor_SetChatColor(int client, const char[] color);
+
+////////////////////////////
 //Forwards
 /**
 * Called while sending a chat message before It's sent.
@@ -60,10 +69,22 @@ forward Action CP_OnChatMessage(int& author, ArrayList recipients, char[] flagst
 **/
 forward void CP_OnChatMessagePost(int author, ArrayList recipients, const char[] flagstring, const char[] formatstring, const char[] name, const char[] message, bool processcolors, bool removecolors);
 
+forward void CP_OnAddClientTagPost(int client, int index, const char[] tag);
+forward void CP_OnRemoveClientTagPost(int client, int index, const char[] tag);
+forward void CP_OnSwapClientTagsPost(int client, int index1, const char[] tag1, int index2, const char[] tag2);
+forward void CP_OnSetNameColorPost(int client, const char[] color);
+forward void CP_OnSetChatColorPost(int client, const char[] color);
+
 #if !defined REQUIRE_PLUGIN
 public void __pl_chat_processor_SetNTVOptional()
 {
 	MarkNativeAsOptional("ChatProcessor_GetFlagFormatString");
+	MarkNativeAsOptional("ChatProcessor_AddClientTag");
+	MarkNativeAsOptional("ChatProcessor_RemoveClientTag");
+	MarkNativeAsOptional("ChatProcessor_SwapClientTags");
+	MarkNativeAsOptional("ChatProcessor_SetTagColor");
+	MarkNativeAsOptional("ChatProcessor_SetNameColor");
+	MarkNativeAsOptional("ChatProcessor_SetChatColor");
 }
 #endif
 

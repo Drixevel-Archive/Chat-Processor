@@ -6,10 +6,10 @@
 ////////////////////
 //Defines
 #define PLUGIN_NAME "Chat-Processor"
-#define PLUGIN_AUTHOR "Keith Warren (Shaders Allen)"
+#define PLUGIN_AUTHOR "Keith Warren (Drixevel)"
 #define PLUGIN_DESCRIPTION "Replacement for Simple Chat Processor."
-#define PLUGIN_VERSION "2.1.5"
-#define PLUGIN_CONTACT "http://www.shadersallen.com/"
+#define PLUGIN_VERSION "2.2.0"
+#define PLUGIN_CONTACT "http://github.com/drixevel/"
 
 ////////////////////
 //Includes
@@ -18,7 +18,7 @@
 #include <colorvariables>
 
 ////////////////////
-//Globals
+//ConVars
 ConVar convar_Status;
 ConVar convar_Config;
 ConVar convar_Default_ProcessColors;
@@ -30,15 +30,31 @@ ConVar convar_AllChat;
 ConVar convar_RestrictDeadChat;
 ConVar convar_AddGOTV;
 
-EngineVersion engine;
-
+////////////////////
+//Forwards
+Handle g_Forward_OnChatMessageSendPre;
 Handle g_Forward_OnChatMessage;
 Handle g_Forward_OnChatMessagePost;
 
-StringMap g_MessageFormats;
+Handle g_Forward_OnAddClientTagPost;
+Handle g_Forward_OnRemoveClientTagPost;
+Handle g_Forward_OnSwapClientTagsPost;
+Handle g_Forward_OnSetTagColorPost;
+Handle g_Forward_OnSetNameColorPost;
+Handle g_Forward_OnSetChatColorPost;
 
+////////////////////
+//Globals
+EngineVersion engine;
+bool g_Late;
+StringMap g_MessageFormats;
 bool g_Proto;
 bool g_NewMSG[MAXPLAYERS + 1];
+
+//Tags
+ArrayList g_Tags[MAXPLAYERS + 1];
+char g_NameColor[MAXPLAYERS + 1][MAXLENGTH_NAME];
+char g_ChatColor[MAXPLAYERS + 1][MAXLENGTH_MESSAGE];
 
 ////////////////////
 // Plugin Info
@@ -58,11 +74,28 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	RegPluginLibrary("chat-processor");
 	
 	CreateNative("ChatProcessor_GetFlagFormatString", Native_GetFlagFormatString);
+	
+	CreateNative("ChatProcessor_AddClientTag", Native_AddClientTag);
+	CreateNative("ChatProcessor_RemoveClientTag", Native_RemoveClientTag);
+	CreateNative("ChatProcessor_SwapClientTags", Native_SwapClientTags);
+	CreateNative("ChatProcessor_SetTagColor", Native_SetTagColor);
+	CreateNative("ChatProcessor_SetNameColor", Native_SetNameColor);
+	CreateNative("ChatProcessor_SetChatColor", Native_SetChatColor);
 
+	g_Forward_OnChatMessageSendPre = CreateGlobalForward("CP_OnChatMessageSendPre", ET_Hook, Param_Cell, Param_Cell, Param_String, Param_Cell);
 	g_Forward_OnChatMessage = CreateGlobalForward("CP_OnChatMessage", ET_Hook, Param_CellByRef, Param_Cell, Param_String, Param_String, Param_String, Param_CellByRef, Param_CellByRef);
 	g_Forward_OnChatMessagePost = CreateGlobalForward("CP_OnChatMessagePost", ET_Ignore, Param_Cell, Param_Cell, Param_String, Param_String, Param_String, Param_String, Param_Cell, Param_Cell);
+	
+	g_Forward_OnAddClientTagPost = CreateGlobalForward("CP_OnAddClientTagPost", ET_Ignore, Param_Cell, Param_Cell, Param_String);
+	g_Forward_OnRemoveClientTagPost = CreateGlobalForward("CP_OnRemoveClientTagPost", ET_Ignore, Param_Cell, Param_Cell, Param_String);
+	g_Forward_OnSwapClientTagsPost = CreateGlobalForward("CP_OnSwapClientTagsPost", ET_Ignore, Param_Cell, Param_Cell, Param_String, Param_Cell, Param_String);
+	g_Forward_OnSetTagColorPost = CreateGlobalForward("CP_OnSetTagColorPost", ET_Ignore, Param_Cell, Param_Cell, Param_String, Param_String);
+	g_Forward_OnSetNameColorPost = CreateGlobalForward("CP_OnSetNameColorPost", ET_Ignore, Param_Cell, Param_String);
+	g_Forward_OnSetChatColorPost = CreateGlobalForward("CP_OnSetChatColorPost", ET_Ignore, Param_Cell, Param_String);
 
 	engine = GetEngineVersion();
+	g_Late = late;
+	
 	return APLRes_Success;
 }
 
@@ -116,6 +149,17 @@ public void OnConfigsExecuted()
 	}
 	else
 		SetFailState("Error loading the plugin, SayText2 is unavailable.");
+	
+	if (g_Late)
+	{
+		g_Late = false;
+		
+		for (int i = 1; i <= MaxClients; i++)
+		{
+			if (IsClientInGame(i))
+				OnClientPutInServer(i);
+		}
+	}
 }
 
 ////////////////////
@@ -186,7 +230,7 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 		char sFlags[32];
 		convar_ColorsFlags.GetString(sFlags, sizeof(sFlags));
 		
-		if (!strlen(sFlags) || !CheckAdminFlagsByString(iSender, sFlags))
+		if (strlen(sFlags) == 0 || !CheckCommandAccess(iSender, "", ReadFlagString(sFlags), true))
 		{
 			CRemoveColors(sName, sizeof(sName));
 			CRemoveColors(sMessage, sizeof(sMessage));
@@ -348,17 +392,37 @@ public void Frame_OnChatMessage_SayText2(DataPack data)
 	if (iResults != Plugin_Stop)
 	{
 		//Send the message to clients.
-		int client;
+		int client; char sTempBuffer[MAXLENGTH_BUFFER];
 		for (int i = 0; i < hRecipients.Length; i++)
 		{
 			if ((client = GetClientOfUserId(hRecipients.Get(i))) > 0 && IsClientInGame(client))
 			{
+				strcopy(sTempBuffer, sizeof(sTempBuffer), sBuffer);		
+						
+				Call_StartForward(g_Forward_OnChatMessageSendPre);		
+				Call_PushCell(iSender);		
+				Call_PushCell(client);		
+				Call_PushStringEx(sTempBuffer, sizeof(sTempBuffer), SM_PARAM_STRING_UTF8|SM_PARAM_STRING_COPY, SM_PARAM_COPYBACK);		
+				Call_PushCell(sizeof(sTempBuffer));		
+						
+				int error = Call_Finish(iResults);		
+						
+				if (error != SP_ERROR_NONE)		
+				{		
+					delete hRecipients;		
+					ThrowNativeError(error, "Global Forward 'CP_OnChatMessageSendPre' has failed to fire. [Error code: %i]", error);		
+					return;		
+				}		
+			
+				if (iResults == Plugin_Stop)		
+						continue;
+				
 				if (g_Proto)
-					CSayText2(client, sBuffer, iSender, bChat);
+					CSayText2(client, sTempBuffer, iSender, bChat);
 				else
 				{
 					CSetNextAuthor(iSender);
-					CPrintToChat(client, "%s", sBuffer);
+					CPrintToChat(client, "%s", sTempBuffer);
 				}
 			}
 		}
@@ -432,29 +496,269 @@ public int Native_GetFlagFormatString(Handle plugin, int numParams)
 }
 
 ////////////////////
-//Stock
-stock bool CheckAdminFlagsByString(int client, const char[] flagString)
+//Tags
+
+public void OnClientPutInServer(int client)
 {
-	AdminId admin = GetUserAdmin(client);
+	g_Tags[client] = new ArrayList(ByteCountToCells(MAXLENGTH_NAME));
+}
 
-	if (admin != INVALID_ADMIN_ID)
+public void OnClientDisconnect_Post(int client)
+{
+	delete g_Tags[client];
+	g_NameColor[client][0] = '\0';
+	g_ChatColor[client][0] = '\0';
+}
+
+bool AddClientTag(int client, const char[] tag)
+{
+	if (client == 0 || client > MaxClients || IsFakeClient(client))
+		return false;
+	
+	int index = g_Tags[client].PushString(tag);
+	
+	PrintToChat(client, "adding '%s' via %i", tag, index);
+	
+	Call_StartForward(g_Forward_OnAddClientTagPost);
+	Call_PushCell(client);
+	Call_PushCell(index);
+	Call_PushString(tag);
+	Call_Finish();
+	
+	return true;
+}
+
+public int Native_AddClientTag(Handle plugin, int numParams)
+{
+	int client = GetNativeCell(1);
+	
+	int size;
+	GetNativeStringLength(2, size); size++;
+	
+	char[] sTag = new char[size];
+	GetNativeString(2, sTag, size);
+	
+	return AddClientTag(client, sTag);
+}
+
+bool RemoveClientTag(int client, const char[] tag)
+{
+	if (client == 0 || client > MaxClients || IsFakeClient(client))
+		return false;
+	
+	bool found; char sTag[MAXLENGTH_NAME];
+	for (int i = 0; i < g_Tags[client].Length; i++)
 	{
-		int count; int found; int flags = ReadFlagString(flagString);
-
-		for (int i = 0; i <= 20; i++)
-		{
-			if (flags & (1 << i))
-			{
-				count++;
-
-				if (GetAdminFlag(admin, view_as<AdminFlag>(i)))
-					found++;
-			}
-		}
-
-		if (count == found)
-			return true;
+		g_Tags[client].GetString(i, sTag, sizeof(sTag));
+		
+		if (StrContains(sTag, tag, false) == -1)
+			continue;
+			
+		g_Tags[client].Erase(i);
+		
+		PrintToChat(client, "removing '%s' via %i", tag, i);
+		
+		Call_StartForward(g_Forward_OnRemoveClientTagPost);
+		Call_PushCell(client);
+		Call_PushCell(i);
+		Call_PushString(tag);
+		Call_Finish();
+		
+		found = true;
 	}
+	
+	return found;
+}
 
-	return false;
+public int Native_RemoveClientTag(Handle plugin, int numParams)
+{
+	int client = GetNativeCell(1);
+	
+	int size;
+	GetNativeStringLength(2, size); size++;
+	
+	char[] sTag = new char[size];
+	GetNativeString(2, sTag, size);
+	
+	return RemoveClientTag(client, sTag);
+}
+
+bool SwapClientTags(int client, const char[] tag1, const char[] tag2)
+{
+	if (client == 0 || client > MaxClients || IsFakeClient(client))
+		return false;
+	
+	int index1 = -1;
+	if ((index1 = g_Tags[client].FindString(tag1)) == -1)
+		return false;
+	
+	int index2 = -1;
+	if ((index2 = g_Tags[client].FindString(tag2)) == -1)
+		return false;
+	
+	g_Tags[client].SwapAt(index1, index2);
+	
+	Call_StartForward(g_Forward_OnSwapClientTagsPost);
+	Call_PushCell(client);
+	Call_PushCell(index1);
+	Call_PushString(tag1);
+	Call_PushCell(index2);
+	Call_PushString(tag2);
+	Call_Finish();
+	
+	return true;
+}
+
+public int Native_SwapClientTags(Handle plugin, int numParams)
+{
+	int client = GetNativeCell(1);
+	
+	int size;
+	
+	GetNativeStringLength(2, size); size++;
+	char[] sTag1 = new char[size];
+	GetNativeString(2, sTag1, size);
+	
+	GetNativeStringLength(3, size); size++;
+	char[] sTag2 = new char[size];
+	GetNativeString(3, sTag2, size);
+	
+	return SwapClientTags(client, sTag1, sTag2);
+}
+
+bool SetTagColor(int client, const char[] tag, const char[] color)
+{
+	if (client == 0 || client > MaxClients || IsFakeClient(client))
+		return false;
+	
+	bool found; char sTag[MAXLENGTH_NAME];
+	for (int i = 0; i < g_Tags[client].Length; i++)
+	{
+		g_Tags[client].GetString(i, sTag, sizeof(sTag));
+		
+		if (StrContains(sTag, tag, false) == -1)
+			continue;
+			
+		CRemoveColors(sTag, sizeof(sTag));
+		Format(sTag, sizeof(sTag), "%s%s", color, sTag);
+		
+		g_Tags[client].SetString(i, sTag);
+		
+		Call_StartForward(g_Forward_OnSetTagColorPost);
+		Call_PushCell(client);
+		Call_PushCell(i);
+		Call_PushString(tag);
+		Call_PushString(color);
+		Call_Finish();
+		
+		found = true;
+	}
+	
+	return found;
+}
+
+public int Native_SetTagColor(Handle plugin, int numParams)
+{
+	int client = GetNativeCell(1);
+	
+	int size;
+	
+	GetNativeStringLength(2, size); size++;
+	char[] sTag = new char[size];
+	GetNativeString(2, sTag, size);
+	
+	GetNativeStringLength(3, size); size++;
+	char[] sColor = new char[size];
+	GetNativeString(3, sColor, size);
+	
+	return SetTagColor(client, sTag, sColor);
+}
+
+bool SetNameColor(int client, const char[] color)
+{
+	if (client == 0 || client > MaxClients || IsFakeClient(client))
+		return false;
+	
+	strcopy(g_NameColor[client], MAXLENGTH_NAME, color);
+	
+	Call_StartForward(g_Forward_OnSetNameColorPost);
+	Call_PushCell(client);
+	Call_PushString(color);
+	Call_Finish();
+	
+	return true;
+}
+
+public int Native_SetNameColor(Handle plugin, int numParams)
+{
+	int client = GetNativeCell(1);
+	
+	int size;
+	GetNativeStringLength(2, size); size++;
+	
+	char[] sColor = new char[size];
+	GetNativeString(2, sColor, size);
+	
+	return SetNameColor(client, sColor);
+}
+
+bool SetChatColor(int client, const char[] color)
+{
+	if (client == 0 || client > MaxClients || IsFakeClient(client))
+		return false;
+	
+	strcopy(g_ChatColor[client], MAXLENGTH_NAME, color);
+	
+	Call_StartForward(g_Forward_OnSetChatColorPost);
+	Call_PushCell(client);
+	Call_PushString(color);
+	Call_Finish();
+	
+	return true;
+}
+
+public int Native_SetChatColor(Handle plugin, int numParams)
+{
+	int client = GetNativeCell(1);
+	
+	int size;
+	GetNativeStringLength(2, size); size++;
+	
+	char[] sColor = new char[size];
+	GetNativeString(2, sColor, size);
+	
+	return SetChatColor(client, sColor);
+}
+
+public Action CP_OnChatMessage(int& author, ArrayList recipients, char[] flagstring, char[] name, char[] message, bool& processcolors, bool& removecolors)
+{
+	bool changed;
+	int size = g_Tags[author].Length;
+	
+	if (size > 0)
+	{
+		Format(name, MAXLENGTH_NAME, "%s%s", strlen(g_NameColor[author]) > 0 ? g_NameColor[author] : "{teamcolor}", name);
+		
+		char sTag[MAXLENGTH_NAME];
+		for (int i = 0; i < size; i++)
+		{
+			g_Tags[author].GetString(i, sTag, sizeof(sTag));
+			Format(name, MAXLENGTH_NAME, "%s%s", sTag, name);
+		}
+		
+		changed = true;
+	}
+	else if (strlen(g_NameColor[author]) > 0)
+	{
+		Format(name, MAXLENGTH_NAME, "%s%s", g_NameColor[author], name);
+		changed = true;
+	}
+	
+	if (strlen(g_ChatColor[author]) > 0)
+	{
+		Format(message, MAXLENGTH_MESSAGE, "%s%s", g_ChatColor[author], message);
+		changed = true;
+	}
+	
+	return changed ? Plugin_Changed : Plugin_Continue;
 }
