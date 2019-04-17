@@ -35,6 +35,7 @@ ConVar convar_AddGOTV;
 Handle g_Forward_OnChatMessageSendPre;
 Handle g_Forward_OnChatMessage;
 Handle g_Forward_OnChatMessagePost;
+Handle g_Forward_OnChatMessageSendPre;
 
 Handle g_Forward_OnAddClientTagPost;
 Handle g_Forward_OnRemoveClientTagPost;

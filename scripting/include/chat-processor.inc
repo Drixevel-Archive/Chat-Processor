@@ -11,28 +11,97 @@
 
 ////////////////////////////
 //Natives
+
 /**
 * Retrieves the current format string assigned from a flag string.
 * Example: "Cstrike_Chat_All" = "{1} :  {2}"
 * You can find the config formats in either the translations or the configs.
 *
-* param sFlag			Flag string to retrieve the format string from.
+* param sFlag		Flag string to retrieve the format string from.
 * param sBuffer		Format string from the flag string.
-* param iSize			Size of the format string buffer.
+* param iSize		Size of the format string buffer.
 *
 * noreturn
 **/
 native void ChatProcessor_GetFlagFormatString(const char[] sFlag, char[] sBuffer, int iSize);
 
+/**
+* Adds a specific tag to a clients name.
+*
+* param client		Client index.
+* param tag			Tag buffer.
+*
+* return			True if added, false otherwise.
+**/
 native bool ChatProcessor_AddClientTag(int client, const char[] tag);
+
+/**
+* Removes a specific tag from a clients name.
+*
+* param client		Client index.
+* param tag			Tag buffer.
+*
+* return			True if found and removed, false otherwise.
+**/
 native bool ChatProcessor_RemoveClientTag(int client, const char[] tag);
+
+/**
+* Swap client tags in place.
+*
+* param client		Client index.
+* param tag1		Tag1 buffer.
+* param tag2		Tag2 buffer.
+*
+* return			True if both found and swapped, false otherwise.
+**/
 native bool ChatProcessor_SwapClientTags(int client, const char[] tag1, const char[] tag2);
+
+/**
+* Sets the specific color for a tag.
+*
+* param client		Client index.
+* param tag			Tag buffer.
+* param color		Color to use.
+*
+* return			True if found and set, false otherwise.
+**/
 native bool ChatProcessor_SetTagColor(int client, const char[] tag, const char[] color);
+
+/**
+* Sets the specific color for the clients name.
+*
+* param client		Client index.
+* param color		Color to use.
+*
+* return			True if set, false otherwise.
+**/
 native bool ChatProcessor_SetNameColor(int client, const char[] color);
+
+/**
+* Sets the specific color for the clients messages.
+*
+* param client		Client index.
+* param color		Color to use.
+*
+* return			True if set, false otherwise.
+**/
 native bool ChatProcessor_SetChatColor(int client, const char[] color);
 
 ////////////////////////////
 //Forwards
+
+/**
+* Called before a chat message is sent, here the message is already processed.
+*
+* param sender			Author that sent the message.
+* param reciver			Reciver of the message.
+* param buffer			Message's buffer.
+* param maxlength		Max length of the buffer.
+*
+* noreturn
+**/
+forward Action CP_OnChatMessageSendPre(int sender, int reciever, char[] buffer, int maxlength);
+
 /**
 * Called while sending a chat message before It's sent.
 * Limits on the name and message strings can be found above.
@@ -51,7 +120,7 @@ native bool ChatProcessor_SetChatColor(int client, const char[] color);
 *  - Plugin_Changed		Fires the post-forward below and prints out a message.
 *  - Plugin_Handled		Fires the post-forward below but doesn't print a message.
 **/
-forward Action CP_OnChatMessage(int& author, ArrayList recipients, char[] flagstring, char[] name, char[] message, bool& processcolors, bool& removecolors);
+forward Action CP_OnChatMessage(int& author, ArrayList recipients, char[] flagstring, char[] name, char[] message, bool & processcolors, bool & removecolors);
 
 /**
 * Called after the chat message is sent to the designated clients by the author.

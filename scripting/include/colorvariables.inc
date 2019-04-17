@@ -497,7 +497,9 @@ stock void CSayText2(int iClient, char[] sMessage, int iAuthor, bool bChat = tru
 
 stock void CAddWhiteSpace(char[] sBuffer, int iSize)
 {
-	if (!IsSource2009()) {
+	EngineVersion iEngineVersion = GetEngineVersion();
+
+	if (!IsSource2009() && !(iEngineVersion == Engine_Left4Dead) && !(iEngineVersion == Engine_Left4Dead2)) {
 		Format(sBuffer, iSize, " %s", sBuffer);
 	}
 }
