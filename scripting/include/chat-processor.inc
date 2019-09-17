@@ -223,6 +223,13 @@ forward void CP_OnSetNameColorPost(int client, const char[] color);
 **/
 forward void CP_OnSetChatColorPost(int client, const char[] color);
 
+/**
+* Called once the plugin is fully loaded and chat data is ready to be parsed.
+*
+* noreturn
+**/
+forward void CP_OnReloadChatData();
+
 #if !defined REQUIRE_PLUGIN
 public void __pl_chat_processor_SetNTVOptional()
 {

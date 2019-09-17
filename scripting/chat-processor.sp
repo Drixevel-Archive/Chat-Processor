@@ -43,6 +43,7 @@ Handle g_Forward_OnStripClientTagsPost;
 Handle g_Forward_OnSetTagColorPost;
 Handle g_Forward_OnSetNameColorPost;
 Handle g_Forward_OnSetChatColorPost;
+Handle g_Forward_OnReloadChatData;
 
 ////////////////////
 //Globals
@@ -95,6 +96,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	g_Forward_OnSetTagColorPost = CreateGlobalForward("CP_OnSetTagColorPost", ET_Ignore, Param_Cell, Param_Cell, Param_String, Param_String);
 	g_Forward_OnSetNameColorPost = CreateGlobalForward("CP_OnSetNameColorPost", ET_Ignore, Param_Cell, Param_String);
 	g_Forward_OnSetChatColorPost = CreateGlobalForward("CP_OnSetChatColorPost", ET_Ignore, Param_Cell, Param_String);
+	g_Forward_OnReloadChatData = CreateGlobalForward("CP_OnReloadChatData", ET_Ignore);
 
 	engine = GetEngineVersion();
 	g_Late = late;
@@ -158,10 +160,11 @@ public void OnConfigsExecuted()
 		g_Late = false;
 		
 		for (int i = 1; i <= MaxClients; i++)
-		{
 			if (IsClientInGame(i))
 				OnClientPutInServer(i);
-		}
+		
+		Call_StartForward(g_Forward_OnReloadChatData);
+		Call_Finish();
 	}
 }
 
@@ -520,8 +523,6 @@ bool AddClientTag(int client, const char[] tag)
 	
 	int index = g_Tags[client].PushString(tag);
 	
-	PrintToChat(client, "adding '%s' via %i", tag, index);
-	
 	Call_StartForward(g_Forward_OnAddClientTagPost);
 	Call_PushCell(client);
 	Call_PushCell(index);
@@ -558,8 +559,6 @@ bool RemoveClientTag(int client, const char[] tag)
 			continue;
 			
 		g_Tags[client].Erase(i);
-		
-		PrintToChat(client, "removing '%s' via %i", tag, i);
 		
 		Call_StartForward(g_Forward_OnRemoveClientTagPost);
 		Call_PushCell(client);
