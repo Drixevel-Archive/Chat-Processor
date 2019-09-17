@@ -6,10 +6,10 @@
 ////////////////////
 //Defines
 #define PLUGIN_NAME "Chat-Processor"
-#define PLUGIN_AUTHOR "Keith Warren (Drixevel)"
+#define PLUGIN_AUTHOR "Drixevel"
 #define PLUGIN_DESCRIPTION "Replacement for Simple Chat Processor."
-#define PLUGIN_VERSION "2.2.0"
-#define PLUGIN_CONTACT "http://github.com/drixevel/"
+#define PLUGIN_VERSION "2.2.1"
+#define PLUGIN_CONTACT "https://drixevel.dev/"
 
 ////////////////////
 //Includes
@@ -39,6 +39,7 @@ Handle g_Forward_OnChatMessagePost;
 Handle g_Forward_OnAddClientTagPost;
 Handle g_Forward_OnRemoveClientTagPost;
 Handle g_Forward_OnSwapClientTagsPost;
+Handle g_Forward_OnStripClientTagsPost;
 Handle g_Forward_OnSetTagColorPost;
 Handle g_Forward_OnSetNameColorPost;
 Handle g_Forward_OnSetChatColorPost;
@@ -78,6 +79,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("ChatProcessor_AddClientTag", Native_AddClientTag);
 	CreateNative("ChatProcessor_RemoveClientTag", Native_RemoveClientTag);
 	CreateNative("ChatProcessor_SwapClientTags", Native_SwapClientTags);
+	CreateNative("ChatProcessor_StripClientTags", Native_StripClientTags);
 	CreateNative("ChatProcessor_SetTagColor", Native_SetTagColor);
 	CreateNative("ChatProcessor_SetNameColor", Native_SetNameColor);
 	CreateNative("ChatProcessor_SetChatColor", Native_SetChatColor);
@@ -89,6 +91,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	g_Forward_OnAddClientTagPost = CreateGlobalForward("CP_OnAddClientTagPost", ET_Ignore, Param_Cell, Param_Cell, Param_String);
 	g_Forward_OnRemoveClientTagPost = CreateGlobalForward("CP_OnRemoveClientTagPost", ET_Ignore, Param_Cell, Param_Cell, Param_String);
 	g_Forward_OnSwapClientTagsPost = CreateGlobalForward("CP_OnSwapClientTagsPost", ET_Ignore, Param_Cell, Param_Cell, Param_String, Param_Cell, Param_String);
+	g_Forward_OnStripClientTagsPost = CreateGlobalForward("CP_OnStripClientTagsPost", ET_Ignore, Param_Cell);
 	g_Forward_OnSetTagColorPost = CreateGlobalForward("CP_OnSetTagColorPost", ET_Ignore, Param_Cell, Param_Cell, Param_String, Param_String);
 	g_Forward_OnSetNameColorPost = CreateGlobalForward("CP_OnSetNameColorPost", ET_Ignore, Param_Cell, Param_String);
 	g_Forward_OnSetChatColorPost = CreateGlobalForward("CP_OnSetChatColorPost", ET_Ignore, Param_Cell, Param_String);
@@ -624,6 +627,26 @@ public int Native_SwapClientTags(Handle plugin, int numParams)
 	GetNativeString(3, sTag2, size);
 	
 	return SwapClientTags(client, sTag1, sTag2);
+}
+
+bool StripClientTags(int client)
+{
+	if (g_Tags[client].Length == 0)
+		return false;
+	
+	g_Tags[client].Clear();
+	
+	Call_StartForward(g_Forward_OnStripClientTagsPost);
+	Call_PushCell(client);
+	Call_Finish();
+	
+	return true;
+}
+
+public int Native_StripClientTags(Handle plugin, int numParams)
+{
+	int client = GetNativeCell(1);
+	return StripClientTags(client);
 }
 
 bool SetTagColor(int client, const char[] tag, const char[] color)
