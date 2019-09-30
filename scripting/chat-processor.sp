@@ -160,8 +160,8 @@ public void OnConfigsExecuted()
 		g_Late = false;
 		
 		for (int i = 1; i <= MaxClients; i++)
-			if (IsClientInGame(i))
-				OnClientPutInServer(i);
+			if (IsClientConnected(i))
+				OnClientConnected(i);
 		
 		Call_StartForward(g_Forward_OnReloadChatData);
 		Call_Finish();
@@ -504,7 +504,7 @@ public int Native_GetFlagFormatString(Handle plugin, int numParams)
 ////////////////////
 //Tags
 
-public void OnClientPutInServer(int client)
+public void OnClientConnected(int client)
 {
 	g_Tags[client] = new ArrayList(ByteCountToCells(MAXLENGTH_NAME));
 }
