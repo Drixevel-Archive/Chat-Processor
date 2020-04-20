@@ -1,6 +1,7 @@
 .vscode
 scripting/compile.exe
 scripting/compile.dat
+scripting/compile.bat
 scripting/compile_all.bat
 scripting/spcomp.exe
 scripting/include/admin.inc
@@ -56,6 +57,7 @@ scripting/include/sdktools_stringtables.inc
 scripting/include/sdktools_tempents.inc
 scripting/include/sdktools_tempents_stocks.inc
 scripting/include/sdktools_trace.inc
+scripting/include/sdktools_variant_t.inc
 scripting/include/sdktools_voice.inc
 scripting/include/sorting.inc
 scripting/include/sourcemod.inc
