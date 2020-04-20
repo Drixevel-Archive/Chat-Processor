@@ -373,6 +373,11 @@ public void Frame_OnChatMessage_SayText2(DataPack data)
 	if (iResults != Plugin_Changed && !bProcessColors || bRemoveColors)
 		Format(sMessage, sizeof(sMessage), "\x03%s", sMessage);
 
+	if (iResults == Plugin_Changed && bProcessColors)
+	{
+		Format(sMessage, sizeof(sMessage), "\x01%s", sMessage);
+	}
+
 	//Replace the specific characters for the name and message strings.
 	ReplaceString(sBuffer, sizeof(sBuffer), "{1}", sName);
 	ReplaceString(sBuffer, sizeof(sBuffer), "{2}", sMessage);
