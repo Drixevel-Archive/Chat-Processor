@@ -53,7 +53,7 @@ stock void CSkipNextPrefix()
 
 stock void CSetNextAuthor(int iClient)
 {
-	if (iClient < 1 || iClient > MaxClients || !IsClientInGame(iClient)) {
+	if (iClient < 0 || iClient > MaxClients || !IsClientInGame(iClient)) {
 		ThrowError("Invalid client index %i", iClient);
 	}
 	g_iAuthor = iClient;
@@ -61,7 +61,7 @@ stock void CSetNextAuthor(int iClient)
 
 stock void CSkipNextClient(int iClient)
 {
-	if (iClient < 1 || iClient > MaxClients) {
+	if (iClient < 0 || iClient > MaxClients) {
 		ThrowError("Invalid client index %i", iClient);
 	}
 	g_bSkipPlayers[iClient] = true;
@@ -69,7 +69,7 @@ stock void CSkipNextClient(int iClient)
 
 stock void CPrintToChat(int iClient, const char[] sMessage, any ...)
 {
-	if (iClient < 1 || iClient > MaxClients) {
+	if (iClient < 0 || iClient > MaxClients) {
 		ThrowError("Invalid client index %d", iClient);
 	}
 
@@ -447,7 +447,7 @@ stock bool CGetColor(const char[] sName, char[] sColor, int iColorSize)
 	} else if (StrContains(sName, "player ", false) == 0 && strlen(sName) > 7) {
 		int iClient = StringToInt(sName[7]);
 
-		if (iClient < 1 || iClient > MaxClients || !IsClientInGame(iClient)) {
+		if (iClient < 0 || iClient > MaxClients || !IsClientInGame(iClient)) {
 			strcopy(sColor, iColorSize, "\x01");
 			LogError("Invalid client index %d", iClient);
 			return false;
