@@ -254,7 +254,10 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 			continue;
 
 		if (convar_AddGOTV.BoolValue && IsFakeClient(i) && IsClientSourceTV(i) && hRecipients.FindValue(GetClientUserId(i)) == -1)
+		{
 			hRecipients.Push(GetClientUserId(i));
+			continue;
+		}
 
 		if (bRestrictDeadChat && !IsPlayerAlive(iSender))
 			continue;
