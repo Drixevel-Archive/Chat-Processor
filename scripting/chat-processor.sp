@@ -8,7 +8,7 @@
 #define PLUGIN_NAME "Chat-Processor"
 #define PLUGIN_AUTHOR "Drixevel"
 #define PLUGIN_DESCRIPTION "Replacement for Simple Chat Processor."
-#define PLUGIN_VERSION "2.2.3"
+#define PLUGIN_VERSION "2.2.4"
 #define PLUGIN_CONTACT "https://drixevel.dev/"
 
 ////////////////////
@@ -129,6 +129,37 @@ public void OnPluginStart()
 	AutoExecConfig(true, self);
 
 	g_MessageFormats = new StringMap();
+	
+	RegAdminCmd("sm_listcolors", Command_ListColors, ADMFLAG_ROOT);
+}
+
+public Action Command_ListColors(int client, int args)
+{
+	StringMap colors = new StringMap();
+	AddColors(colors);
+	
+	StringMapSnapshot snap = colors.Snapshot();
+	
+	for (int i = 0; i < snap.Length; i++)
+	{
+		int size = snap.KeyBufferSize(i);
+		
+		char[] key = new char[size];
+		snap.GetKey(i, key, size);
+		
+		if (StrContains(key, "engine", false) == 0)
+			continue;
+		
+		char value[16];
+		colors.GetString(key, value, sizeof(value));
+		
+		CPrintToChat(client, "{darkblue}[{steelblue}%s{darkblue}] {default}Color: %s %s", PLUGIN_NAME, value, key);
+	}
+	
+	delete colors;
+	delete snap;
+	
+	return Plugin_Handled;
 }
 
 ////////////////////
