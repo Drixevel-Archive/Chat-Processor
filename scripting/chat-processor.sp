@@ -122,7 +122,11 @@ public void OnPluginStart()
 	convar_AllChat = CreateConVar("sm_chatprocessor_allchat", "0", "Allows both teams to communicate with each other through team chat.\n(0 = off, 1 = on)", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	convar_RestrictDeadChat = CreateConVar("sm_chatprocessor_restrictdeadchat", "0", "Restricts all chat for the dead entirely.\n(0 = off, 1 = on)", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	convar_AddGOTV = CreateConVar("sm_chatprocessor_addgotv", "1", "Add GOTV client to recipients list. (Only effects games with GOTV or SourceTV)", FCVAR_NOTIFY, true, 0.0, true, 1.0);
-	AutoExecConfig();
+	
+	char self[128];
+	GetPluginFilename(GetMyHandle(), self, sizeof(self));
+	ReplaceString(self, sizeof(self), ".smx", "", false);	
+	AutoExecConfig(true, self);
 
 	g_MessageFormats = new StringMap();
 }
@@ -372,6 +376,11 @@ public void Frame_OnChatMessage_SayText2(DataPack data)
 	//Make sure that the text is default for the message if no colors are present.
 	if (iResults != Plugin_Changed && !bProcessColors || bRemoveColors)
 		Format(sMessage, sizeof(sMessage), "\x03%s", sMessage);
+
+	if (iResults == Plugin_Changed && bProcessColors)
+	{
+		Format(sMessage, sizeof(sMessage), "\x01%s", sMessage);
+	}
 
 	//Replace the specific characters for the name and message strings.
 	ReplaceString(sBuffer, sizeof(sBuffer), "{1}", sName);

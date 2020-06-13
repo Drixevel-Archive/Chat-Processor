@@ -53,7 +53,7 @@ stock void CSkipNextPrefix()
 
 stock void CSetNextAuthor(int iClient)
 {
-	if (iClient < 1 || iClient > MaxClients || !IsClientInGame(iClient)) {
+	if (iClient < 0 || iClient > MaxClients || !IsClientInGame(iClient)) {
 		ThrowError("Invalid client index %i", iClient);
 	}
 	g_iAuthor = iClient;
@@ -61,7 +61,7 @@ stock void CSetNextAuthor(int iClient)
 
 stock void CSkipNextClient(int iClient)
 {
-	if (iClient < 1 || iClient > MaxClients) {
+	if (iClient < 0 || iClient > MaxClients) {
 		ThrowError("Invalid client index %i", iClient);
 	}
 	g_bSkipPlayers[iClient] = true;
@@ -69,7 +69,7 @@ stock void CSkipNextClient(int iClient)
 
 stock void CPrintToChat(int iClient, const char[] sMessage, any ...)
 {
-	if (iClient < 1 || iClient > MaxClients) {
+	if (iClient < 0 || iClient > MaxClients) {
 		ThrowError("Invalid client index %d", iClient);
 	}
 
@@ -447,7 +447,7 @@ stock bool CGetColor(const char[] sName, char[] sColor, int iColorSize)
 	} else if (StrContains(sName, "player ", false) == 0 && strlen(sName) > 7) {
 		int iClient = StringToInt(sName[7]);
 
-		if (iClient < 1 || iClient > MaxClients || !IsClientInGame(iClient)) {
+		if (iClient < 0 || iClient > MaxClients || !IsClientInGame(iClient)) {
 			strcopy(sColor, iColorSize, "\x01");
 			LogError("Invalid client index %d", iClient);
 			return false;
@@ -966,24 +966,34 @@ stock void AddColors(Handle hTrie)
 		SetTrieString(hTrie, "yellow", "\x07FFFF00");
 		SetTrieString(hTrie, "yellowgreen", "\x079ACD32");
 	} else {
-		SetTrieString(hTrie, "default", "\x01");
-		SetTrieString(hTrie, "teamcolor", "\x03");
+		SetTrieString(hTrie, "default", "\x01");       // "\x01" "{default}"
+		SetTrieString(hTrie, "teamcolor", "\x03");     // "\x03" "{lightgreen}" "\x03" "{orange}" "\x03" "{blue}" "\x03" "{purple}"
 
-		SetTrieString(hTrie, "red", "\x07");
-		SetTrieString(hTrie, "lightred", "\x0F");
-		SetTrieString(hTrie, "darkred", "\x02");
-		SetTrieString(hTrie, "bluegrey", "\x0A");
-		SetTrieString(hTrie, "blue", "\x0B");
-		SetTrieString(hTrie, "darkblue", "\x0C");
+		SetTrieString(hTrie, "red", "\x07");           // "\x07" "{red}"
+		SetTrieString(hTrie, "lightred", "\x0F");      // "\x0F" "{lightred}"
+		SetTrieString(hTrie, "darkred", "\x02");       // "\x02" "{darkred}"
+		SetTrieString(hTrie, "bluegrey", "\x0A");      // "\x0A" "{lightblue}"
+		SetTrieString(hTrie, "blue", "\x0B");          // "\x0B" "{steelblue}"
+		SetTrieString(hTrie, "darkblue", "\x0C");      // "\x0C" "{darkblue}"
 		SetTrieString(hTrie, "purple", "\x03");
-		SetTrieString(hTrie, "orchid", "\x0E");
-		SetTrieString(hTrie, "yellow", "\x09");
+		SetTrieString(hTrie, "orchid", "\x0E");        // "\x0E" "{pink}"
+		SetTrieString(hTrie, "yellow", "\x09");        // "\x09" "{yellow}"
 		SetTrieString(hTrie, "gold", "\x10");
-		SetTrieString(hTrie, "lightgreen", "\x05");
-		SetTrieString(hTrie, "green", "\x04");
-		SetTrieString(hTrie, "lime", "\x06");
-		SetTrieString(hTrie, "grey", "\x08");
+		SetTrieString(hTrie, "lightgreen", "\x05");    // "\x05" "{olive}"
+		SetTrieString(hTrie, "green", "\x04");         // "\x04" "{green}"
+		SetTrieString(hTrie, "lime", "\x06");          // "\x06" "{lime}"
+		SetTrieString(hTrie, "grey", "\x08");          // "\x08" "{grey}"
 		SetTrieString(hTrie, "grey2", "\x0D");
+
+		// Additional color names for ckSurf backwards compatibility
+		SetTrieString(hTrie, "bluegray", "\x0A"); // using bluegrey
+		SetTrieString(hTrie, "gray", "\x08"); // using gray
+		SetTrieString(hTrie, "gray2", "\x0D"); // using gray2
+		SetTrieString(hTrie, "orange", "\x10"); // using gold
+		SetTrieString(hTrie, "steelblue", "\x0D"); // using grey2
+		SetTrieString(hTrie, "pink", "\x0E"); // using orchid
+		SetTrieString(hTrie, "lightblue", "\x0A"); // using bluegrey
+		SetTrieString(hTrie, "olive", "\x05"); // using lightgreen
 	}
 
 	SetTrieString(hTrie, "engine 1", "\x01");
