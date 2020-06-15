@@ -279,7 +279,7 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 	bool bRestrictDeadChat = convar_RestrictDeadChat.BoolValue;
 	int team = GetClientTeam(iSender);
 
-	for (int i = 1; i < MaxClients; i++)
+	for (int i = 1; i < MaxClients + 1; i++)
 	{
 		if (!IsClientInGame(i) || (!convar_AddGOTV.BoolValue && IsFakeClient(i)))
 			continue;
