@@ -8,14 +8,14 @@
 #define PLUGIN_NAME "Chat-Processor"
 #define PLUGIN_AUTHOR "Drixevel"
 #define PLUGIN_DESCRIPTION "Replacement for Simple Chat Processor."
-#define PLUGIN_VERSION "2.2.4"
+#define PLUGIN_VERSION "2.2.5"
 #define PLUGIN_CONTACT "https://drixevel.dev/"
 
 ////////////////////
 //Includes
 #include <sourcemod>
 #include <chat-processor>
-#include <colorvariables>
+#include <multicolors>
 
 ////////////////////
 //ConVars
@@ -47,7 +47,7 @@ Handle g_Forward_OnReloadChatData;
 
 ////////////////////
 //Globals
-EngineVersion engine;
+EngineVersion game;
 bool g_Late;
 StringMap g_MessageFormats;
 bool g_Proto;
@@ -98,7 +98,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	g_Forward_OnSetChatColorPost = CreateGlobalForward("CP_OnSetChatColorPost", ET_Ignore, Param_Cell, Param_String);
 	g_Forward_OnReloadChatData = CreateGlobalForward("CP_OnReloadChatData", ET_Ignore);
 
-	engine = GetEngineVersion();
+	game = GetEngineVersion();
 	g_Late = late;
 	
 	return APLRes_Success;
@@ -123,43 +123,9 @@ public void OnPluginStart()
 	convar_RestrictDeadChat = CreateConVar("sm_chatprocessor_restrictdeadchat", "0", "Restricts all chat for the dead entirely.\n(0 = off, 1 = on)", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	convar_AddGOTV = CreateConVar("sm_chatprocessor_addgotv", "1", "Add GOTV client to recipients list. (Only effects games with GOTV or SourceTV)", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	
-	char self[128];
-	GetPluginFilename(GetMyHandle(), self, sizeof(self));
-	ReplaceString(self, sizeof(self), ".smx", "", false);	
-	AutoExecConfig(true, self);
+	AutoExecConfig(true, "chat-processor");
 
 	g_MessageFormats = new StringMap();
-	
-	RegAdminCmd("sm_listcolors", Command_ListColors, ADMFLAG_ROOT);
-}
-
-public Action Command_ListColors(int client, int args)
-{
-	StringMap colors = new StringMap();
-	AddColors(colors);
-	
-	StringMapSnapshot snap = colors.Snapshot();
-	
-	for (int i = 0; i < snap.Length; i++)
-	{
-		int size = snap.KeyBufferSize(i);
-		
-		char[] key = new char[size];
-		snap.GetKey(i, key, size);
-		
-		if (StrContains(key, "engine", false) == 0)
-			continue;
-		
-		char value[16];
-		colors.GetString(key, value, sizeof(value));
-		
-		CPrintToChat(client, "{darkblue}[{steelblue}%s{darkblue}] {default}Color: %s %s", PLUGIN_NAME, value, key);
-	}
-	
-	delete colors;
-	delete snap;
-	
-	return Plugin_Handled;
 }
 
 ////////////////////
@@ -218,9 +184,6 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 	if (iSender <= 0)
 		return Plugin_Continue;
 
-	//Chat Type
-	bool bChat = g_Proto ? PbReadBool(msg, "chat") : view_as<bool>(BfReadByte(msg));
-
 	//Retrieve the name of template name to use when getting the format.
 	char sFlag[MAXLENGTH_FLAG];
 	switch (g_Proto)
@@ -266,8 +229,8 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 		
 		if (strlen(sFlags) == 0 || !CheckCommandAccess(iSender, "", ReadFlagString(sFlags), true))
 		{
-			CRemoveColors(sName, sizeof(sName));
-			CRemoveColors(sMessage, sizeof(sMessage));
+			CRemoveTags(sName, sizeof(sName));
+			CRemoveTags(sMessage, sizeof(sMessage));
 		}
 	}
 
@@ -361,7 +324,6 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 	hPack.WriteCell(bRemoveColors);
 
 	hPack.WriteString(sFormat);
-	hPack.WriteCell(bChat);
 	hPack.WriteCell(iResults);
 	hPack.WriteCell(bRestrictDeadChat);
 
@@ -393,7 +355,6 @@ public void Frame_OnChatMessage_SayText2(DataPack data)
 	char sFormat[MAXLENGTH_BUFFER];
 	data.ReadString(sFormat, sizeof(sFormat));
 
-	bool bChat = data.ReadCell();
 	Action iResults = data.ReadCell();
 
 	bool bRestrictDeadChat = data.ReadCell();
@@ -412,9 +373,7 @@ public void Frame_OnChatMessage_SayText2(DataPack data)
 		Format(sMessage, sizeof(sMessage), "\x03%s", sMessage);
 
 	if (iResults == Plugin_Changed && bProcessColors)
-	{
 		Format(sMessage, sizeof(sMessage), "\x01%s", sMessage);
-	}
 
 	//Replace the specific characters for the name and message strings.
 	ReplaceString(sBuffer, sizeof(sBuffer), "{1}", sName);
@@ -424,10 +383,10 @@ public void Frame_OnChatMessage_SayText2(DataPack data)
 	//Process colors based on the final results we have.
 	if (iResults == Plugin_Changed && bProcessColors)
 	{
-		CProcessVariables(sBuffer, sizeof(sBuffer), bRemoveColors);
+		CFormatColor(sBuffer, sizeof(sBuffer), iSender);
 
 		//CSGO quirk where the 1st color in the line won't work..
-		if (engine == Engine_CSGO)
+		if (game == Engine_CSGO)
 			Format(sBuffer, sizeof(sBuffer), " %s", sBuffer);
 	}
 
@@ -440,15 +399,15 @@ public void Frame_OnChatMessage_SayText2(DataPack data)
 			if ((client = GetClientOfUserId(hRecipients.Get(i))) > 0 && IsClientInGame(client))
 			{
 				strcopy(sTempBuffer, sizeof(sTempBuffer), sBuffer);		
-						
+				
 				Call_StartForward(g_Forward_OnChatMessageSendPre);		
 				Call_PushCell(iSender);		
 				Call_PushCell(client);		
 				Call_PushStringEx(sTempBuffer, sizeof(sTempBuffer), SM_PARAM_STRING_UTF8|SM_PARAM_STRING_COPY, SM_PARAM_COPYBACK);		
 				Call_PushCell(sizeof(sTempBuffer));		
-						
+				
 				int error = Call_Finish(iResults);		
-						
+				
 				if (error != SP_ERROR_NONE)		
 				{		
 					delete hRecipients;		
@@ -459,13 +418,7 @@ public void Frame_OnChatMessage_SayText2(DataPack data)
 				if (iResults == Plugin_Stop)		
 						continue;
 				
-				if (g_Proto)
-					CSayText2(client, sTempBuffer, iSender, bChat);
-				else
-				{
-					CSetNextAuthor(iSender);
-					CPrintToChat(client, "%s", sTempBuffer);
-				}
+				CPrintToChatEx(client, iSender, "%s", sTempBuffer);
 			}
 		}
 	}
@@ -716,7 +669,7 @@ bool SetTagColor(int client, const char[] tag, const char[] color)
 		if (StrContains(sTag, tag, false) == -1)
 			continue;
 			
-		CRemoveColors(sTag, sizeof(sTag));
+		CRemoveTags(sTag, sizeof(sTag));
 		Format(sTag, sizeof(sTag), "%s%s", color, sTag);
 		
 		g_Tags[client].SetString(i, sTag);
