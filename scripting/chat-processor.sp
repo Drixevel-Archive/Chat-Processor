@@ -8,7 +8,7 @@
 #define PLUGIN_NAME "Chat-Processor"
 #define PLUGIN_AUTHOR "Drixevel"
 #define PLUGIN_DESCRIPTION "Replacement for Simple Chat Processor."
-#define PLUGIN_VERSION "2.2.5"
+#define PLUGIN_VERSION "2.2.6"
 #define PLUGIN_CONTACT "https://drixevel.dev/"
 
 ////////////////////
@@ -177,13 +177,13 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 	//Check if the plugin is disabled.
 	if (!convar_Status.BoolValue)
 		return Plugin_Continue;
-
+	
 	//Retrieve the client sending the message to other clients.
-	int iSender = g_Proto ? PbReadInt(msg, "ent_idx") : BfReadByte(msg);
-
-	if (iSender <= 0)
+	int author = g_Proto ? PbReadInt(msg, "ent_idx") : BfReadByte(msg);
+	
+	if (author <= 0)
 		return Plugin_Continue;
-
+	
 	//Retrieve the name of template name to use when getting the format.
 	char sFlag[MAXLENGTH_FLAG];
 	switch (g_Proto)
@@ -191,15 +191,21 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 		case true: PbReadString(msg, "msg_name", sFlag, sizeof(sFlag));
 		case false: BfReadString(msg, sFlag, sizeof(sFlag));
 	}
-
+	
+	//Trim the flag so there's no potential issues with retrieving the specified format rules.
+	TrimString(sFlag);
+	
 	//Retrieve the format template based on the flag name above we retrieved.
 	char sFormat[MAXLENGTH_BUFFER];
-	if (!g_MessageFormats.GetString(sFlag, sFormat, sizeof(sFormat)))
-		return Plugin_Continue;
+	g_MessageFormats.GetString(sFlag, sFormat, sizeof(sFormat));
+	
+	//If no format is found for this flag, go with a default.
+	if (strlen(sFormat) == 0)
+		FormatEx(sFormat, sizeof(sFormat), "{1} : {2}");
 	
 	//Stops double messages in-general.
-	if (g_NewMSG[iSender])
-		g_NewMSG[iSender] = false;
+	if (g_NewMSG[author])
+		g_NewMSG[author] = false;
 	else if (reliable)	//Fix for other plugins that use SayText2 I guess?
 		return Plugin_Stop;
 	
@@ -227,7 +233,7 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 		char sFlags[32];
 		convar_ColorsFlags.GetString(sFlags, sizeof(sFlags));
 		
-		if (strlen(sFlags) == 0 || !CheckCommandAccess(iSender, "", ReadFlagString(sFlags), true))
+		if (strlen(sFlags) == 0 || !CheckCommandAccess(author, "", ReadFlagString(sFlags), true))
 		{
 			CRemoveTags(sName, sizeof(sName));
 			CRemoveTags(sMessage, sizeof(sMessage));
@@ -235,34 +241,34 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 	}
 
 	//It's easier just to use a handle here for an array instead of passing 2 arguments through both forwards with static arrays.
-	ArrayList hRecipients = new ArrayList();
+	ArrayList recipients = new ArrayList();
 
 	bool bDeadTalk = convar_DeadChat.BoolValue;
 	bool bAllTalk = convar_AllChat.BoolValue;
 	bool bRestrictDeadChat = convar_RestrictDeadChat.BoolValue;
-	int team = GetClientTeam(iSender);
+	int team = GetClientTeam(author);
 
 	for (int i = 1; i < MaxClients + 1; i++)
 	{
 		if (!IsClientInGame(i) || (!convar_AddGOTV.BoolValue && IsFakeClient(i)))
 			continue;
 
-		if (convar_AddGOTV.BoolValue && IsFakeClient(i) && IsClientSourceTV(i) && hRecipients.FindValue(GetClientUserId(i)) == -1)
+		if (convar_AddGOTV.BoolValue && IsFakeClient(i) && IsClientSourceTV(i) && recipients.FindValue(GetClientUserId(i)) == -1)
 		{
-			hRecipients.Push(GetClientUserId(i));
+			recipients.Push(GetClientUserId(i));
 			continue;
 		}
 
-		if (bRestrictDeadChat && !IsPlayerAlive(iSender))
+		if (bRestrictDeadChat && !IsPlayerAlive(author))
 			continue;
 
-		if (!IsPlayerAlive(iSender) && !bDeadTalk && IsPlayerAlive(i))
+		if (!IsPlayerAlive(author) && !bDeadTalk && IsPlayerAlive(i))
 			continue;
 
 		if (!bAllTalk && StrContains(sFlag, "_All") == -1 && team != GetClientTeam(i))
 			continue;
 		
-		hRecipients.Push(GetClientUserId(i));
+		recipients.Push(GetClientUserId(i));
 	}
 
 	//Retrieve the default values for coloring and use these as a base for developers to change later.
@@ -270,19 +276,19 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 	bool bRemoveColors = convar_RemoveColors.BoolValue;
 
 	//We need to make copy of these strings for checks after the pre-forward has fired.
+	char sFlagCopy[MAXLENGTH_FLAG];
+	strcopy(sFlagCopy, sizeof(sFlagCopy), sFlag);
+	
 	char sNameCopy[MAXLENGTH_NAME];
 	strcopy(sNameCopy, sizeof(sNameCopy), sName);
 
 	char sMessageCopy[MAXLENGTH_MESSAGE];
 	strcopy(sMessageCopy, sizeof(sMessageCopy), sMessage);
-
-	char sFlagCopy[MAXLENGTH_FLAG];
-	strcopy(sFlagCopy, sizeof(sFlagCopy), sFlag);
-
+	
 	//Fire the pre-forward. https://i.ytimg.com/vi/A2a0Ht01qA8/maxresdefault.jpg
 	Call_StartForward(g_Forward_OnChatMessage);
-	Call_PushCellRef(iSender);
-	Call_PushCell(hRecipients);
+	Call_PushCellRef(author);
+	Call_PushCell(recipients);
 	Call_PushStringEx(sFlag, sizeof(sFlag), SM_PARAM_STRING_UTF8|SM_PARAM_STRING_COPY, SM_PARAM_COPYBACK);
 	Call_PushStringEx(sName, sizeof(sName), SM_PARAM_STRING_UTF8|SM_PARAM_STRING_COPY, SM_PARAM_COPYBACK);
 	Call_PushStringEx(sMessage, sizeof(sMessage), SM_PARAM_STRING_UTF8|SM_PARAM_STRING_COPY, SM_PARAM_COPYBACK);
@@ -296,16 +302,21 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 	//We ran into a native error, gotta report it.
 	if (error != SP_ERROR_NONE)
 	{
-		delete hRecipients;
+		delete recipients;
 		ThrowNativeError(error, "Global Forward 'CP_OnChatMessage' has failed to fire. [Error code: %i]", error);
 		return Plugin_Continue;
 	}
-
-	//Check if the flag string was changed after the pre-forward and if so, re-retrieve the format string.
-	if (!StrEqual(sFlag, sFlagCopy) && !g_MessageFormats.GetString(sFlag, sFormat, sizeof(sFormat)))
+	
+	//Check if our flag has changed and if it has, updating our formatting rules.
+	if (!StrEqual(sFlag, sFlagCopy))
 	{
-		delete hRecipients;
-		return Plugin_Continue;
+		strcopy(sFlag, sizeof(sFlag), sFlagCopy);
+		
+		sFormat[0] = '\0';
+		g_MessageFormats.GetString(sFlag, sFormat, sizeof(sFormat));
+		
+		if (strlen(sFormat) == 0)
+			FormatEx(sFormat, sizeof(sFormat), "{1} : {2}");
 	}
 
 	if (StrEqual(sNameCopy, sName))
@@ -313,56 +324,52 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 
 	if (StrEqual(sMessageCopy, sMessage))
 		Format(sMessage, sizeof(sMessage), "\x01%s", sMessage);
-
-	DataPack hPack = new DataPack();
-	hPack.WriteCell(iSender);
-	hPack.WriteCell(hRecipients);
-	hPack.WriteString(sName);
-	hPack.WriteString(sMessage);
-	hPack.WriteString(sFlag);
-	hPack.WriteCell(bProcessColors);
-	hPack.WriteCell(bRemoveColors);
-
-	hPack.WriteString(sFormat);
-	hPack.WriteCell(iResults);
-	hPack.WriteCell(bRestrictDeadChat);
-
-	RequestFrame(Frame_OnChatMessage_SayText2, hPack);
+	
+	DataPack pack;
+	CreateDataTimer(0.1, Timer_OnChatMessage, pack);
+	pack.WriteCell(author);
+	pack.WriteCell(recipients);
+	pack.WriteString(sName);
+	pack.WriteString(sMessage);
+	pack.WriteString(sFlag);
+	pack.WriteCell(bProcessColors);
+	pack.WriteCell(bRemoveColors);
+	pack.WriteString(sFormat);
+	pack.WriteCell(iResults);
+	pack.WriteCell(bRestrictDeadChat);
 
 	return Plugin_Stop;
 }
 
-public void Frame_OnChatMessage_SayText2(DataPack data)
+public Action Timer_OnChatMessage(Handle timer, DataPack pack)
 {
 	//Retrieve pack contents and what not, this part is obvious.
-	data.Reset();
+	pack.Reset();
 
-	int iSender = data.ReadCell();
-	ArrayList hRecipients = data.ReadCell();
+	int author = pack.ReadCell();
+	ArrayList recipients = pack.ReadCell();
 
 	char sName[MAXLENGTH_NAME];
-	data.ReadString(sName, sizeof(sName));
+	pack.ReadString(sName, sizeof(sName));
 
 	char sMessage[MAXLENGTH_MESSAGE];
-	data.ReadString(sMessage, sizeof(sMessage));
+	pack.ReadString(sMessage, sizeof(sMessage));
 
 	char sFlag[MAXLENGTH_FLAG];
-	data.ReadString(sFlag, sizeof(sFlag));
+	pack.ReadString(sFlag, sizeof(sFlag));
 
-	bool bProcessColors = data.ReadCell();
-	bool bRemoveColors = data.ReadCell();
+	bool bProcessColors = pack.ReadCell();
+	bool bRemoveColors = pack.ReadCell();
 
 	char sFormat[MAXLENGTH_BUFFER];
-	data.ReadString(sFormat, sizeof(sFormat));
+	pack.ReadString(sFormat, sizeof(sFormat));
 
-	Action iResults = data.ReadCell();
+	Action iResults = pack.ReadCell();
 
-	bool bRestrictDeadChat = data.ReadCell();
-
-	delete data;
+	bool bRestrictDeadChat = pack.ReadCell();
 
 	if (bRestrictDeadChat)
-		PrintToChat(iSender, "Dead chat is currently restricted.");
+		PrintToChat(author, "Dead chat is currently restricted.");
 
 	//Make a copy of the format buffer and use that as the print so the format string stays the same.
 	char sBuffer[MAXLENGTH_BUFFER];
@@ -383,7 +390,7 @@ public void Frame_OnChatMessage_SayText2(DataPack data)
 	//Process colors based on the final results we have.
 	if (iResults == Plugin_Changed && bProcessColors)
 	{
-		CFormatColor(sBuffer, sizeof(sBuffer), iSender);
+		CFormatColor(sBuffer, sizeof(sBuffer), author);
 
 		//CSGO quirk where the 1st color in the line won't work..
 		if (game == Engine_CSGO)
@@ -394,14 +401,14 @@ public void Frame_OnChatMessage_SayText2(DataPack data)
 	{
 		//Send the message to clients.
 		int client; char sTempBuffer[MAXLENGTH_BUFFER];
-		for (int i = 0; i < hRecipients.Length; i++)
+		for (int i = 0; i < recipients.Length; i++)
 		{
-			if ((client = GetClientOfUserId(hRecipients.Get(i))) > 0 && IsClientInGame(client))
+			if ((client = GetClientOfUserId(recipients.Get(i))) > 0 && IsClientInGame(client))
 			{
 				strcopy(sTempBuffer, sizeof(sTempBuffer), sBuffer);		
 				
 				Call_StartForward(g_Forward_OnChatMessageSendPre);		
-				Call_PushCell(iSender);		
+				Call_PushCell(author);		
 				Call_PushCell(client);		
 				Call_PushStringEx(sTempBuffer, sizeof(sTempBuffer), SM_PARAM_STRING_UTF8|SM_PARAM_STRING_COPY, SM_PARAM_COPYBACK);		
 				Call_PushCell(sizeof(sTempBuffer));		
@@ -410,23 +417,23 @@ public void Frame_OnChatMessage_SayText2(DataPack data)
 				
 				if (error != SP_ERROR_NONE)		
 				{		
-					delete hRecipients;		
+					delete recipients;		
 					ThrowNativeError(error, "Global Forward 'CP_OnChatMessageSendPre' has failed to fire. [Error code: %i]", error);		
 					return;		
 				}		
 			
 				if (iResults == Plugin_Stop)		
-						continue;
+					continue;
 				
-				CPrintToChatEx(client, iSender, "%s", sTempBuffer);
+				CPrintToChatEx(client, author, "%s", sTempBuffer);
 			}
 		}
 	}
 
 	//Finally... fire the post-forward after the message has been sent and processed. https://s-media-cache-ak0.pinimg.com/564x/a5/bb/3c/a5bb3c3e05089a40ef01ea082ac39e24.jpg
 	Call_StartForward(g_Forward_OnChatMessagePost);
-	Call_PushCell(iSender);
-	Call_PushCell(hRecipients);
+	Call_PushCell(author);
+	Call_PushCell(recipients);
 	Call_PushString(sFlag);
 	Call_PushString(sFormat);
 	Call_PushString(sName);
@@ -436,7 +443,7 @@ public void Frame_OnChatMessage_SayText2(DataPack data)
 	Call_Finish();
 
 	//Close the recipients handle.
-	delete hRecipients;
+	delete recipients;
 }
 
 ////////////////////
@@ -463,6 +470,8 @@ void GenerateMessageFormats()
 		{
 			kv.GetSectionName(sName, sizeof(sName));
 			kv.GetString(NULL_STRING, sValue, sizeof(sValue));
+			
+			TrimString(sName);
 			g_MessageFormats.SetString(sName, sValue);
 		}
 		while (kv.GotoNextKey(false));
