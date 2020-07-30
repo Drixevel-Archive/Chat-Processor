@@ -108,7 +108,11 @@ native bool ChatProcessor_SetChatColor(int client, const char[] color);
 * param buffer			Message's buffer.
 * param maxlength		Max length of the buffer.
 *
-* noreturn
+* return types
+*  - Plugin_Continue	Continues the message.
+*  - Plugin_Changed		Continues the message.
+*  - Plugin_Handled		Stops the message.
+*  - Plugin_Stop		Stops the message.
 **/
 forward Action CP_OnChatMessageSendPre(int sender, int reciever, char[] flag, char[] buffer, int maxlength);
 
@@ -125,10 +129,10 @@ forward Action CP_OnChatMessageSendPre(int sender, int reciever, char[] flag, ch
 * param removecolors	Toggle to remove colors in the buffer strings. (Requires bProcessColors = true)
 *
 * return types
-*  - Plugin_Continue	Stops the message.
-*  - Plugin_Stop		Stops the message.
+*  - Plugin_Continue	Continues the message.
 *  - Plugin_Changed		Fires the post-forward below and prints out a message.
 *  - Plugin_Handled		Fires the post-forward below but doesn't print a message.
+*  - Plugin_Stop		Stops the message.
 **/
 forward Action CP_OnChatMessage(int& author, ArrayList recipients, char[] flagstring, char[] name, char[] message, bool & processcolors, bool & removecolors);
 

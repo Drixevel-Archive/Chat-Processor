@@ -8,7 +8,7 @@
 #define PLUGIN_NAME "Chat-Processor"
 #define PLUGIN_AUTHOR "Drixevel"
 #define PLUGIN_DESCRIPTION "Replacement for Simple Chat Processor."
-#define PLUGIN_VERSION "2.2.7"
+#define PLUGIN_VERSION "2.2.8"
 #define PLUGIN_CONTACT "https://drixevel.dev/"
 
 ////////////////////
@@ -426,7 +426,7 @@ public void Frame_OnChatMessage(DataPack pack)
 					return;
 				}
 			
-				if (iResults == Plugin_Stop)
+				if (iResults == Plugin_Stop || iResults == Plugin_Handled)
 					continue;
 				
 				CPrintToChatEx(client, author, "%s", sTempBuffer);
