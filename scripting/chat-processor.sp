@@ -8,7 +8,7 @@
 #define PLUGIN_NAME "Chat-Processor"
 #define PLUGIN_AUTHOR "Drixevel"
 #define PLUGIN_DESCRIPTION "Replacement for Simple Chat Processor."
-#define PLUGIN_VERSION "2.2.6"
+#define PLUGIN_VERSION "2.2.7"
 #define PLUGIN_CONTACT "https://drixevel.dev/"
 
 ////////////////////
@@ -85,7 +85,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("ChatProcessor_SetNameColor", Native_SetNameColor);
 	CreateNative("ChatProcessor_SetChatColor", Native_SetChatColor);
 
-	g_Forward_OnChatMessageSendPre = CreateGlobalForward("CP_OnChatMessageSendPre", ET_Hook, Param_Cell, Param_Cell, Param_String, Param_Cell);
+	g_Forward_OnChatMessageSendPre = CreateGlobalForward("CP_OnChatMessageSendPre", ET_Hook, Param_Cell, Param_Cell, Param_String, Param_String, Param_Cell);
 	g_Forward_OnChatMessage = CreateGlobalForward("CP_OnChatMessage", ET_Hook, Param_CellByRef, Param_Cell, Param_String, Param_String, Param_String, Param_CellByRef, Param_CellByRef);
 	g_Forward_OnChatMessagePost = CreateGlobalForward("CP_OnChatMessagePost", ET_Ignore, Param_Cell, Param_Cell, Param_String, Param_String, Param_String, Param_String, Param_Cell, Param_Cell);
 	
@@ -325,8 +325,7 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 	if (StrEqual(sMessageCopy, sMessage))
 		Format(sMessage, sizeof(sMessage), "\x01%s", sMessage);
 	
-	DataPack pack;
-	CreateDataTimer(0.1, Timer_OnChatMessage, pack);
+	DataPack pack = new DataPack();
 	pack.WriteCell(author);
 	pack.WriteCell(recipients);
 	pack.WriteString(sName);
@@ -337,11 +336,13 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 	pack.WriteString(sFormat);
 	pack.WriteCell(iResults);
 	pack.WriteCell(bRestrictDeadChat);
+	
+	RequestFrame(Frame_OnChatMessage, pack);
 
 	return Plugin_Stop;
 }
 
-public Action Timer_OnChatMessage(Handle timer, DataPack pack)
+public void Frame_OnChatMessage(DataPack pack)
 {
 	//Retrieve pack contents and what not, this part is obvious.
 	pack.Reset();
@@ -367,6 +368,8 @@ public Action Timer_OnChatMessage(Handle timer, DataPack pack)
 	Action iResults = pack.ReadCell();
 
 	bool bRestrictDeadChat = pack.ReadCell();
+	
+	delete pack;
 
 	if (bRestrictDeadChat)
 		PrintToChat(author, "Dead chat is currently restricted.");
@@ -405,24 +408,25 @@ public Action Timer_OnChatMessage(Handle timer, DataPack pack)
 		{
 			if ((client = GetClientOfUserId(recipients.Get(i))) > 0 && IsClientInGame(client))
 			{
-				strcopy(sTempBuffer, sizeof(sTempBuffer), sBuffer);		
+				strcopy(sTempBuffer, sizeof(sTempBuffer), sBuffer);
 				
-				Call_StartForward(g_Forward_OnChatMessageSendPre);		
-				Call_PushCell(author);		
-				Call_PushCell(client);		
-				Call_PushStringEx(sTempBuffer, sizeof(sTempBuffer), SM_PARAM_STRING_UTF8|SM_PARAM_STRING_COPY, SM_PARAM_COPYBACK);		
-				Call_PushCell(sizeof(sTempBuffer));		
+				Call_StartForward(g_Forward_OnChatMessageSendPre);
+				Call_PushCell(author);
+				Call_PushCell(client);
+				Call_PushStringEx(sFlag, sizeof(sFlag), SM_PARAM_STRING_UTF8|SM_PARAM_STRING_COPY, SM_PARAM_COPYBACK);
+				Call_PushStringEx(sTempBuffer, sizeof(sTempBuffer), SM_PARAM_STRING_UTF8|SM_PARAM_STRING_COPY, SM_PARAM_COPYBACK);
+				Call_PushCell(sizeof(sTempBuffer));
 				
-				int error = Call_Finish(iResults);		
+				int error = Call_Finish(iResults);
 				
-				if (error != SP_ERROR_NONE)		
-				{		
-					delete recipients;		
-					ThrowNativeError(error, "Global Forward 'CP_OnChatMessageSendPre' has failed to fire. [Error code: %i]", error);		
-					return;		
-				}		
+				if (error != SP_ERROR_NONE)
+				{
+					delete recipients;
+					ThrowNativeError(error, "Global Forward 'CP_OnChatMessageSendPre' has failed to fire. [Error code: %i]", error);
+					return;
+				}
 			
-				if (iResults == Plugin_Stop)		
+				if (iResults == Plugin_Stop)
 					continue;
 				
 				CPrintToChatEx(client, author, "%s", sTempBuffer);

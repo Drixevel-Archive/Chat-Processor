@@ -104,12 +104,13 @@ native bool ChatProcessor_SetChatColor(int client, const char[] color);
 *
 * param sender			Author that sent the message.
 * param reciver			Reciver of the message.
+* param flag			Message's flag.
 * param buffer			Message's buffer.
 * param maxlength		Max length of the buffer.
 *
 * noreturn
 **/
-forward Action CP_OnChatMessageSendPre(int sender, int reciever, char[] buffer, int maxlength);
+forward Action CP_OnChatMessageSendPre(int sender, int reciever, char[] flag, char[] buffer, int maxlength);
 
 /**
 * Called while sending a chat message before It's sent.
