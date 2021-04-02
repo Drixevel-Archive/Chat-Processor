@@ -8,14 +8,14 @@
 #define PLUGIN_NAME "Chat-Processor"
 #define PLUGIN_AUTHOR "Drixevel"
 #define PLUGIN_DESCRIPTION "Replacement for Simple Chat Processor."
-#define PLUGIN_VERSION "2.2.8"
+#define PLUGIN_VERSION "2.2.9"
 #define PLUGIN_CONTACT "https://drixevel.dev/"
 
 ////////////////////
 //Includes
 #include <sourcemod>
 #include <chat-processor>
-#include <multicolors>
+#include <colorvariables>
 
 ////////////////////
 //ConVars
@@ -235,8 +235,8 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 		
 		if (strlen(sFlags) == 0 || !CheckCommandAccess(author, "", ReadFlagString(sFlags), true))
 		{
-			CRemoveTags(sName, sizeof(sName));
-			CRemoveTags(sMessage, sizeof(sMessage));
+			CRemoveColors(sName, sizeof(sName));
+			CRemoveColors(sMessage, sizeof(sMessage));
 		}
 	}
 
@@ -393,7 +393,7 @@ public void Frame_OnChatMessage(DataPack pack)
 	//Process colors based on the final results we have.
 	if (iResults == Plugin_Changed && bProcessColors)
 	{
-		CFormatColor(sBuffer, sizeof(sBuffer), author);
+		CProcessVariables(sBuffer, sizeof(sBuffer));
 
 		//CSGO quirk where the 1st color in the line won't work..
 		if (game == Engine_CSGO)
@@ -429,7 +429,8 @@ public void Frame_OnChatMessage(DataPack pack)
 				if (iResults == Plugin_Stop || iResults == Plugin_Handled)
 					continue;
 				
-				CPrintToChatEx(client, author, "%s", sTempBuffer);
+				CSetNextAuthor(author);
+				CPrintToChat(client, "%s", sTempBuffer);
 			}
 		}
 	}
@@ -682,7 +683,7 @@ bool SetTagColor(int client, const char[] tag, const char[] color)
 		if (StrContains(sTag, tag, false) == -1)
 			continue;
 			
-		CRemoveTags(sTag, sizeof(sTag));
+		CRemoveColors(sTag, sizeof(sTag));
 		Format(sTag, sizeof(sTag), "%s%s", color, sTag);
 		
 		g_Tags[client].SetString(i, sTag);
