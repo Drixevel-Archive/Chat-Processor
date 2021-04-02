@@ -379,7 +379,7 @@ public void Frame_OnChatMessage(DataPack pack)
 	strcopy(sBuffer, sizeof(sBuffer), sFormat);
 
 	//Make sure that the text is default for the message if no colors are present.
-	if (iResults != Plugin_Changed && !bProcessColors || bRemoveColors)
+	if (iResults != Plugin_Changed && (!bProcessColors || bRemoveColors))
 		Format(sMessage, sizeof(sMessage), "\x03%s", sMessage);
 
 	if (iResults == Plugin_Changed && bProcessColors)
