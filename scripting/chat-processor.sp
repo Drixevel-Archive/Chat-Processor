@@ -8,7 +8,7 @@
 #define PLUGIN_NAME "Chat-Processor"
 #define PLUGIN_AUTHOR "Drixevel"
 #define PLUGIN_DESCRIPTION "Replacement for Simple Chat Processor."
-#define PLUGIN_VERSION "2.2.8"
+#define PLUGIN_VERSION "2.2.9"
 #define PLUGIN_CONTACT "https://drixevel.dev/"
 
 ////////////////////
