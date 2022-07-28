@@ -2,7 +2,7 @@
 
 A Sourcemod plugin which allows other plugins to add and manage chat related features.
 
-🍴 This is a fork of [Drixevel's Chat Processor](https://github.com/Drixevel-Archive/Chat-Processor) that uses MultiColors instead of ColorVariables. Use it you're having issues with the original.
+🍴 This is a fork of [Drixevel's Chat Processor](https://github.com/Drixevel-Archive/Chat-Processor) that uses MultiColors instead of ColorVariables. Use it if you're having issues with the original.
 
 ## Installation
 
