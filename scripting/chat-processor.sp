@@ -15,7 +15,7 @@
 //Includes
 #include <sourcemod>
 #include <chat-processor>
-#include <colorvariables>
+#include <multicolors>
 
 ////////////////////
 //ConVars
@@ -235,8 +235,8 @@ public Action OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int pl
 		
 		if (strlen(sFlags) == 0 || !CheckCommandAccess(author, "", ReadFlagString(sFlags), true))
 		{
-			CRemoveColors(sName, sizeof(sName));
-			CRemoveColors(sMessage, sizeof(sMessage));
+			CRemoveTags(sName, sizeof(sName));
+			CRemoveTags(sMessage, sizeof(sMessage));
 		}
 	}
 
@@ -393,7 +393,7 @@ public void Frame_OnChatMessage(DataPack pack)
 	//Process colors based on the final results we have.
 	if (iResults == Plugin_Changed && bProcessColors)
 	{
-		CProcessVariables(sBuffer, sizeof(sBuffer));
+		CFormatColor(sBuffer, sizeof(sBuffer), author);
 
 		//CSGO quirk where the 1st color in the line won't work..
 		if (game == Engine_CSGO)
@@ -429,8 +429,7 @@ public void Frame_OnChatMessage(DataPack pack)
 				if (iResults == Plugin_Stop || iResults == Plugin_Handled)
 					continue;
 				
-				CSetNextAuthor(author);
-				CPrintToChat(client, "%s", sTempBuffer);
+				CPrintToChatEx(client, author, "%s", sTempBuffer);
 			}
 		}
 	}
@@ -683,7 +682,7 @@ bool SetTagColor(int client, const char[] tag, const char[] color)
 		if (StrContains(sTag, tag, false) == -1)
 			continue;
 			
-		CRemoveColors(sTag, sizeof(sTag));
+		CRemoveTags(sTag, sizeof(sTag));
 		Format(sTag, sizeof(sTag), "%s%s", color, sTag);
 		
 		g_Tags[client].SetString(i, sTag);

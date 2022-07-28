@@ -2,6 +2,8 @@
 
 A Sourcemod plugin which allows other plugins to add and manage chat related features.
 
+🍴 This is a fork of [Drixevel's Chat Processor](https://github.com/Drixevel-Archive/Chat-Processor) that uses MultiColors instead of ColorVariables. Use it if you're having issues with the original.
+
 ## Installation
 
 Place the .smx into the plugins folder and the .cfg into the configs folder.
